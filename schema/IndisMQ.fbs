@@ -1,0 +1,29 @@
+//flatc -g -c -s IndisMQ.fbs --gen-object-api --scoped-enums
+//Version Major 00 Minor 01
+namespace IndisMQ;
+file_identifier "0001";
+enum MsgType:byte{PEER,MULT, QUEUE, CMD}
+enum Cmd:byte{SUB, UNSUB, SYN}
+enum Sts:byte{ERROR,REQ,REP,CANCEL, SUCCESS}
+enum Err:byte{NO_HANDLER, INVALID, REMOTE, TIMEOUT}
+struct Ver{
+    Major:byte;
+    Minor:byte;
+    }
+
+table Imq{
+    Body:[ubyte];
+    From:string;
+    To:string;
+    Broker:bool;
+    Cmd:Cmd;
+    MsgId:string;
+    MsgType:MsgType;
+    Sts:Sts;
+    Path:string;
+    Err:Err;
+    StsMsg:string;
+    Callback:bool;
+    Ver:Ver;
+}
+root_type Imq;
