@@ -1,7 +1,7 @@
 #ifndef INDIS_RPC_H
 #define INDIS_RPC_H
 
-#include "../../Schema/IndisRPC_Generated.h"
+#include "../Schema/IndisRPC_Generated.h"
 #include "../flatbuffers.h"
 #include <unordered_map>
 #include <map>
