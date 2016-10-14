@@ -1,41 +1,72 @@
 #ifndef INDIS_RPC_H
 #define INDIS_RPC_H
 
-#include "../Schema/IndisRPC_Generated.h"
-#include "../flatbuffers.h"
+#define V_MAJOR 0
+#define V_MINOR 1
+#include "IndisMQ_Generated.h"
+#include "flatbuffers/flatbuffers.h"
 #include <unordered_map>
 #include <map>
 #include <mutex>
 #include <time.h>
-namespace schema=IndisRPC;
-namespace rpc{
-struct rpcStatus;
-typedef bool (*rpcCallback)(std::shared_ptr<rpcStatus> rpc);
-struct rpcStatus{
-    std::shared_ptr<rpcCallback> callback;
-    std::unique_ptr<uint8_t> reqData;
-    int reqDataSize;
-    std::unique_ptr<uint8_t> resData;
-    int resDataSize;
-    std::unique_ptr<std::vector<uint8_t>> data;
-    schema::Sts sts;
+namespace schema=IndisMQ;
+namespace imq{
+struct Msg;
+typedef std::unique_ptr<Msg> (*Handler)(Msg* m); //need to think about owership of return and pass in
+struct Msg{
     std::string id;
+    std::string from;
+    std::string to;
+    std::unique_ptr<Handler> callback;
+    std::unique_ptr<std::vector<uint8_t>> data;
+    std::unique_ptr<std::vector<uint8_t>> body;
+    bool broker;
+    schema::Sts sts;
     schema::Err err;
-    std::string msg;
-    int rpcType;
-    int retries;
-    int retry;
-    int timestamp;
-    int timeout;
+    std::string stsMsg;
+    schema::Cmd cmd;
+    std::string path;
+    schema::MsgType msgType;
+    bool hasCallback;
 };
-typedef void(*rpcHandler)(std::shared_ptr<rpcStatus> rpc);
 
-typedef bool (*rpcSender)(uint8_t *data, int size);
-typedef void (*statusFunc)(std::shared_ptr<rpcStatus> val);
-std::unordered_map<int,std::unique_ptr<rpcHandler>> handlers;
-rpcSender sender;
-std::unordered_map<std::string,std::shared_ptr<rpcStatus>> status;
-std::mutex statusLock;
+
+std::unordered_map<int,std::unique_ptr<Handler>> handlers;
+Handler brokerHandler;
+Handler relayHandler;
+
+std::unordered_map<std::string,std::shared_ptr<Msg>> messages;
+std::unordered_map<std::string,std::unordered_map<std::string,bool>> subscribers;
+bool debug=false;
+
+void setBrokerHandler(Handler handler){
+    brokerHandler=handler;
+}
+void setRelayHandler(Handler handler){
+    relayHandler=handler;
+}
+std::unique_ptr<Msg> parseMsg(std::unique_ptr<std::vector<uint8_t>> data){
+    if(data==nullptr){
+        return nullptr;
+    }
+    std::unique_ptr<Msg> m=std::unique_ptr<Msg>(new Msg());
+    auto imq=schema::GetImq(data.get());
+    m->id=imq->MsgId()->str();
+    m->sts=imq->Sts();
+    m->body=std::unique_ptr<std::vector<uint8_t>>(new std::vector<uint8_t>(imq->Body()->data(),imq->Body()->data()+imq->Body()->size()));
+    m->err=imq->Err();
+    m->stsMsg=imq->StsMsg()->str();
+    m->path=imq->Path()->str();
+    m->cmd=imq->Cmd();
+    m->msgType=imq->MsgType();
+    m->from=imq->From()->str();
+    m->to=imq->To()->str();
+    m->hasCallback=imq->Callback();
+    m->broker=imq->Broker();
+    m->data=move(data);
+    return m;
+
+}
 
 
 std::shared_ptr<rpcStatus> getRPCStatus(std::string id){

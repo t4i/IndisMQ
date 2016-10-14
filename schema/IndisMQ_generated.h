@@ -128,15 +128,15 @@ struct Imq FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *From() const { return GetPointer<const flatbuffers::String *>(VT_FROM); }
   const flatbuffers::String *To() const { return GetPointer<const flatbuffers::String *>(VT_TO); }
   bool Broker() const { return GetField<uint8_t>(VT_BROKER, 0) != 0; }
-  Cmd Cmd() const { return static_cast<Cmd>(GetField<int8_t>(VT_CMD, 0)); }
+  IndisMQ::Cmd Cmd() const { return static_cast<IndisMQ::Cmd>(GetField<int8_t>(VT_CMD, 0)); }
   const flatbuffers::String *MsgId() const { return GetPointer<const flatbuffers::String *>(VT_MSGID); }
-  MsgType MsgType() const { return static_cast<MsgType>(GetField<int8_t>(VT_MSGTYPE, 0)); }
-  Sts Sts() const { return static_cast<Sts>(GetField<int8_t>(VT_STS, 0)); }
+  IndisMQ::MsgType MsgType() const { return static_cast<IndisMQ::MsgType>(GetField<int8_t>(VT_MSGTYPE, 0)); }
+  IndisMQ::Sts Sts() const { return static_cast<IndisMQ::Sts>(GetField<int8_t>(VT_STS, 0)); }
   const flatbuffers::String *Path() const { return GetPointer<const flatbuffers::String *>(VT_PATH); }
-  Err Err() const { return static_cast<Err>(GetField<int8_t>(VT_ERR, 0)); }
+  IndisMQ::Err Err() const { return static_cast<IndisMQ::Err>(GetField<int8_t>(VT_ERR, 0)); }
   const flatbuffers::String *StsMsg() const { return GetPointer<const flatbuffers::String *>(VT_STSMSG); }
   bool Callback() const { return GetField<uint8_t>(VT_CALLBACK, 0) != 0; }
-  const Ver *Ver() const { return GetStruct<const Ver *>(VT_VER); }
+  const IndisMQ::Ver *Ver() const { return GetStruct<const IndisMQ::Ver *>(VT_VER); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<flatbuffers::uoffset_t>(verifier, VT_BODY) &&
@@ -157,7 +157,7 @@ struct Imq FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<flatbuffers::uoffset_t>(verifier, VT_STSMSG) &&
            verifier.Verify(StsMsg()) &&
            VerifyField<uint8_t>(verifier, VT_CALLBACK) &&
-           VerifyField<Ver>(verifier, VT_VER) &&
+           VerifyField<IndisMQ::Ver>(verifier, VT_VER) &&
            verifier.EndTable();
   }
   std::unique_ptr<ImqT> UnPack() const;
@@ -251,7 +251,7 @@ inline std::unique_ptr<ImqT> Imq::UnPack() const {
   { auto _e = Err(); _o->Err = _e; };
   { auto _e = StsMsg(); if (_e) _o->StsMsg = _e->str(); };
   { auto _e = Callback(); _o->Callback = _e; };
-  { auto _e = Ver(); if (_e) _o->Ver = std::unique_ptr<Ver>(new Ver(*_e)); };
+  { auto _e = Ver(); if (_e) _o->Ver = std::unique_ptr<IndisMQ::Ver>(new IndisMQ::Ver(*_e)); };
   return std::unique_ptr<ImqT>(_o);
 }
 

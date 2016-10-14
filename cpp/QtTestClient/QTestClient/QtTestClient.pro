@@ -16,3 +16,5 @@ HEADERS += \
     ../indis_rpc.h
 
 DISTFILES +=
+
+INCLUDEPATH += $$PWD/../../../schema
