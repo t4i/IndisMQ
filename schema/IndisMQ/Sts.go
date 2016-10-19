@@ -3,14 +3,16 @@
 package IndisMQ
 
 const (
-	StsERROR = 0
-	StsREQ = 1
-	StsREP = 2
-	StsCANCEL = 3
-	StsSUCCESS = 4
+	StsNONE = 0
+	StsERROR = 1
+	StsREQ = 2
+	StsREP = 3
+	StsCANCEL = 4
+	StsSUCCESS = 5
 )
 
 var EnumNamesSts = map[int]string{
+	StsNONE:"NONE",
 	StsERROR:"ERROR",
 	StsREQ:"REQ",
 	StsREP:"REP",

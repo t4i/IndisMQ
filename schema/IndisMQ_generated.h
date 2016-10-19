@@ -13,64 +13,68 @@ struct Imq;
 struct ImqT;
 
 enum class MsgType : int8_t {
-  PEER = 0,
-  MULT = 1,
-  QUEUE = 2,
-  CMD = 3,
-  MIN = PEER,
+  NONE = 0,
+  PEER = 1,
+  MULT = 2,
+  QUEUE = 3,
+  CMD = 4,
+  MIN = NONE,
   MAX = CMD
 };
 
 inline const char **EnumNamesMsgType() {
-  static const char *names[] = { "PEER", "MULT", "QUEUE", "CMD", nullptr };
+  static const char *names[] = { "NONE", "PEER", "MULT", "QUEUE", "CMD", nullptr };
   return names;
 }
 
 inline const char *EnumNameMsgType(MsgType e) { return EnumNamesMsgType()[static_cast<int>(e)]; }
 
 enum class Cmd : int8_t {
-  SUB = 0,
-  UNSUB = 1,
-  SYN = 2,
-  MIN = SUB,
+  NONE = 0,
+  SUB = 1,
+  UNSUB = 2,
+  SYN = 3,
+  MIN = NONE,
   MAX = SYN
 };
 
 inline const char **EnumNamesCmd() {
-  static const char *names[] = { "SUB", "UNSUB", "SYN", nullptr };
+  static const char *names[] = { "NONE", "SUB", "UNSUB", "SYN", nullptr };
   return names;
 }
 
 inline const char *EnumNameCmd(Cmd e) { return EnumNamesCmd()[static_cast<int>(e)]; }
 
 enum class Sts : int8_t {
-  ERROR = 0,
-  REQ = 1,
-  REP = 2,
-  CANCEL = 3,
-  SUCCESS = 4,
-  MIN = ERROR,
+  NONE = 0,
+  ERROR = 1,
+  REQ = 2,
+  REP = 3,
+  CANCEL = 4,
+  SUCCESS = 5,
+  MIN = NONE,
   MAX = SUCCESS
 };
 
 inline const char **EnumNamesSts() {
-  static const char *names[] = { "ERROR", "REQ", "REP", "CANCEL", "SUCCESS", nullptr };
+  static const char *names[] = { "NONE", "ERROR", "REQ", "REP", "CANCEL", "SUCCESS", nullptr };
   return names;
 }
 
 inline const char *EnumNameSts(Sts e) { return EnumNamesSts()[static_cast<int>(e)]; }
 
 enum class Err : int8_t {
-  NO_HANDLER = 0,
-  INVALID = 1,
-  REMOTE = 2,
-  TIMEOUT = 3,
-  MIN = NO_HANDLER,
+  NONE = 0,
+  NO_HANDLER = 1,
+  INVALID = 2,
+  REMOTE = 3,
+  TIMEOUT = 4,
+  MIN = NONE,
   MAX = TIMEOUT
 };
 
 inline const char **EnumNamesErr() {
-  static const char *names[] = { "NO_HANDLER", "INVALID", "REMOTE", "TIMEOUT", nullptr };
+  static const char *names[] = { "NONE", "NO_HANDLER", "INVALID", "REMOTE", "TIMEOUT", nullptr };
   return names;
 }
 
@@ -192,12 +196,12 @@ inline flatbuffers::Offset<Imq> CreateImq(flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> From = 0,
     flatbuffers::Offset<flatbuffers::String> To = 0,
     bool Broker = false,
-    Cmd Cmd = Cmd::SUB,
+    Cmd Cmd = Cmd::NONE,
     flatbuffers::Offset<flatbuffers::String> MsgId = 0,
-    MsgType MsgType = MsgType::PEER,
-    Sts Sts = Sts::ERROR,
+    MsgType MsgType = MsgType::NONE,
+    Sts Sts = Sts::NONE,
     flatbuffers::Offset<flatbuffers::String> Path = 0,
-    Err Err = Err::NO_HANDLER,
+    Err Err = Err::NONE,
     flatbuffers::Offset<flatbuffers::String> StsMsg = 0,
     bool Callback = false,
     const Ver *Ver = 0) {
@@ -223,12 +227,12 @@ inline flatbuffers::Offset<Imq> CreateImqDirect(flatbuffers::FlatBufferBuilder &
     const char *From = nullptr,
     const char *To = nullptr,
     bool Broker = false,
-    Cmd Cmd = Cmd::SUB,
+    Cmd Cmd = Cmd::NONE,
     const char *MsgId = nullptr,
-    MsgType MsgType = MsgType::PEER,
-    Sts Sts = Sts::ERROR,
+    MsgType MsgType = MsgType::NONE,
+    Sts Sts = Sts::NONE,
     const char *Path = nullptr,
-    Err Err = Err::NO_HANDLER,
+    Err Err = Err::NONE,
     const char *StsMsg = nullptr,
     bool Callback = false,
     const Ver *Ver = 0) {

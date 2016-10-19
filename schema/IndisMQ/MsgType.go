@@ -3,13 +3,15 @@
 package IndisMQ
 
 const (
-	MsgTypePEER = 0
-	MsgTypeMULT = 1
-	MsgTypeQUEUE = 2
-	MsgTypeCMD = 3
+	MsgTypeNONE = 0
+	MsgTypePEER = 1
+	MsgTypeMULT = 2
+	MsgTypeQUEUE = 3
+	MsgTypeCMD = 4
 )
 
 var EnumNamesMsgType = map[int]string{
+	MsgTypeNONE:"NONE",
 	MsgTypePEER:"PEER",
 	MsgTypeMULT:"MULT",
 	MsgTypeQUEUE:"QUEUE",

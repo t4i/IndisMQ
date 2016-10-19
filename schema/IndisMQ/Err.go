@@ -3,13 +3,15 @@
 package IndisMQ
 
 const (
-	ErrNO_HANDLER = 0
-	ErrINVALID = 1
-	ErrREMOTE = 2
-	ErrTIMEOUT = 3
+	ErrNONE = 0
+	ErrNO_HANDLER = 1
+	ErrINVALID = 2
+	ErrREMOTE = 3
+	ErrTIMEOUT = 4
 )
 
 var EnumNamesErr = map[int]string{
+	ErrNONE:"NONE",
 	ErrNO_HANDLER:"NO_HANDLER",
 	ErrINVALID:"INVALID",
 	ErrREMOTE:"REMOTE",

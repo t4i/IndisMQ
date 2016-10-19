@@ -3,12 +3,14 @@
 package IndisMQ
 
 const (
-	CmdSUB = 0
-	CmdUNSUB = 1
-	CmdSYN = 2
+	CmdNONE = 0
+	CmdSUB = 1
+	CmdUNSUB = 2
+	CmdSYN = 3
 )
 
 var EnumNamesCmd = map[int]string{
+	CmdNONE:"NONE",
 	CmdSUB:"SUB",
 	CmdUNSUB:"UNSUB",
 	CmdSYN:"SYN",

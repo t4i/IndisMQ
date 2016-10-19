@@ -10,40 +10,44 @@ var IndisMQ = IndisMQ || {};
  * @enum
  */
 IndisMQ.MsgType = {
-  PEER: 0,
-  MULT: 1,
-  QUEUE: 2,
-  CMD: 3
+  NONE: 0,
+  PEER: 1,
+  MULT: 2,
+  QUEUE: 3,
+  CMD: 4
 };
 
 /**
  * @enum
  */
 IndisMQ.Cmd = {
-  SUB: 0,
-  UNSUB: 1,
-  SYN: 2
+  NONE: 0,
+  SUB: 1,
+  UNSUB: 2,
+  SYN: 3
 };
 
 /**
  * @enum
  */
 IndisMQ.Sts = {
-  ERROR: 0,
-  REQ: 1,
-  REP: 2,
-  CANCEL: 3,
-  SUCCESS: 4
+  NONE: 0,
+  ERROR: 1,
+  REQ: 2,
+  REP: 3,
+  CANCEL: 4,
+  SUCCESS: 5
 };
 
 /**
  * @enum
  */
 IndisMQ.Err = {
-  NO_HANDLER: 0,
-  INVALID: 1,
-  REMOTE: 2,
-  TIMEOUT: 3
+  NONE: 0,
+  NO_HANDLER: 1,
+  INVALID: 2,
+  REMOTE: 3,
+  TIMEOUT: 4
 };
 
 /**
@@ -198,7 +202,7 @@ IndisMQ.Imq.prototype.Broker = function() {
  */
 IndisMQ.Imq.prototype.Cmd = function() {
   var offset = this.bb.__offset(this.bb_pos, 12);
-  return offset ? /** @type {IndisMQ.Cmd} */ (this.bb.readInt8(this.bb_pos + offset)) : IndisMQ.Cmd.SUB;
+  return offset ? /** @type {IndisMQ.Cmd} */ (this.bb.readInt8(this.bb_pos + offset)) : IndisMQ.Cmd.NONE;
 };
 
 /**
@@ -215,7 +219,7 @@ IndisMQ.Imq.prototype.MsgId = function(optionalEncoding) {
  */
 IndisMQ.Imq.prototype.MsgType = function() {
   var offset = this.bb.__offset(this.bb_pos, 16);
-  return offset ? /** @type {IndisMQ.MsgType} */ (this.bb.readInt8(this.bb_pos + offset)) : IndisMQ.MsgType.PEER;
+  return offset ? /** @type {IndisMQ.MsgType} */ (this.bb.readInt8(this.bb_pos + offset)) : IndisMQ.MsgType.NONE;
 };
 
 /**
@@ -223,7 +227,7 @@ IndisMQ.Imq.prototype.MsgType = function() {
  */
 IndisMQ.Imq.prototype.Sts = function() {
   var offset = this.bb.__offset(this.bb_pos, 18);
-  return offset ? /** @type {IndisMQ.Sts} */ (this.bb.readInt8(this.bb_pos + offset)) : IndisMQ.Sts.ERROR;
+  return offset ? /** @type {IndisMQ.Sts} */ (this.bb.readInt8(this.bb_pos + offset)) : IndisMQ.Sts.NONE;
 };
 
 /**
@@ -240,7 +244,7 @@ IndisMQ.Imq.prototype.Path = function(optionalEncoding) {
  */
 IndisMQ.Imq.prototype.Err = function() {
   var offset = this.bb.__offset(this.bb_pos, 22);
-  return offset ? /** @type {IndisMQ.Err} */ (this.bb.readInt8(this.bb_pos + offset)) : IndisMQ.Err.NO_HANDLER;
+  return offset ? /** @type {IndisMQ.Err} */ (this.bb.readInt8(this.bb_pos + offset)) : IndisMQ.Err.NONE;
 };
 
 /**
@@ -334,7 +338,7 @@ IndisMQ.Imq.addBroker = function(builder, Broker) {
  * @param {IndisMQ.Cmd} Cmd
  */
 IndisMQ.Imq.addCmd = function(builder, Cmd) {
-  builder.addFieldInt8(4, Cmd, IndisMQ.Cmd.SUB);
+  builder.addFieldInt8(4, Cmd, IndisMQ.Cmd.NONE);
 };
 
 /**
@@ -350,7 +354,7 @@ IndisMQ.Imq.addMsgId = function(builder, MsgIdOffset) {
  * @param {IndisMQ.MsgType} MsgType
  */
 IndisMQ.Imq.addMsgType = function(builder, MsgType) {
-  builder.addFieldInt8(6, MsgType, IndisMQ.MsgType.PEER);
+  builder.addFieldInt8(6, MsgType, IndisMQ.MsgType.NONE);
 };
 
 /**
@@ -358,7 +362,7 @@ IndisMQ.Imq.addMsgType = function(builder, MsgType) {
  * @param {IndisMQ.Sts} Sts
  */
 IndisMQ.Imq.addSts = function(builder, Sts) {
-  builder.addFieldInt8(7, Sts, IndisMQ.Sts.ERROR);
+  builder.addFieldInt8(7, Sts, IndisMQ.Sts.NONE);
 };
 
 /**
@@ -374,7 +378,7 @@ IndisMQ.Imq.addPath = function(builder, PathOffset) {
  * @param {IndisMQ.Err} Err
  */
 IndisMQ.Imq.addErr = function(builder, Err) {
-  builder.addFieldInt8(9, Err, IndisMQ.Err.NO_HANDLER);
+  builder.addFieldInt8(9, Err, IndisMQ.Err.NONE);
 };
 
 /**
