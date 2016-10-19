@@ -24,7 +24,6 @@ type Msg struct {
 }
 
 var handlers = make(map[string]Handler)
-var callbacks = make(map[string]Handler)
 var brokerHandler Handler
 var relayHandler Handler
 var messages = make(map[string]*Msg)
@@ -61,38 +60,33 @@ func getImqMessage(id string) (imqMessage *Msg) {
 	var present bool
 	//statusLock.RLock()
 	if imqMessage, present = messages[id]; !present {
-		// The source wasn't found, so we'll create it.
-		imqMessage = new(Msg)
-		messages[id] = imqMessage
+		return nil
 	}
 	//statusLock.RUnlock()
 	return
 }
-func verifyImqMessage(id string) (imqMessage *Msg) {
-	return messages[id]
-}
 
-func callCallback(imqMessage *Msg) *Msg {
-	callback := imqMessage.Callback
-	if callback != nil {
-		return callback(imqMessage)
-	}
-	return nil
-}
+// func callCallback(imqMessage *Msg) *Msg {
+// 	callback := imqMessage.Callback
+// 	if callback != nil {
+// 		return callback(imqMessage)
+// 	}
+// 	return nil
+// }
 
-func readImqMessage(id string, f func(*Msg)) {
-	msg := getImqMessage(id)
-	//statusLock.RLock()
-	f(msg)
-	//statusLock.RUnlock()
-}
+// func readImqMessage(id string, f func(*Msg)) {
+// 	msg := getImqMessage(id)
+// 	//statusLock.RLock()
+// 	f(msg)
+// 	//statusLock.RUnlock()
+// }
 
-func writeImqMessage(id string, f func(*Msg)) {
-	msg := getImqMessage(id)
-	//statusLock.Lock()
-	f(msg)
-	//statusLock.Unlock()
-}
+// func writeImqMessage(id string, f func(*Msg)) {
+// 	msg := getImqMessage(id)
+// 	//statusLock.Lock()
+// 	f(msg)
+// 	//statusLock.Unlock()
+// }
 
 //GetMessageSize ...
 func GetMessageSize() int {
@@ -152,11 +146,16 @@ func delHandler(path string) {
 
 //Syn ...
 func Syn(stsMsg string, callback Handler) *Msg {
-	uuid, uuidErr := newUUID()
+	uuid, uuidErr := newUID()
 	if uuidErr != nil {
 		fmt.Printf("error: %v\n", uuidErr)
 	}
-	return makeImq(uuid, name, nil, 0, nil, schema.MsgTypeCMD, schema.StsREQ, schema.CmdSYN, []byte(stsMsg), -1, nil, callback)
+
+	m := makeImq(uuid, name, nil, 0, nil, schema.MsgTypeCMD, schema.StsREQ, schema.CmdSYN, []byte(stsMsg), -1, nil, callback)
+	if callback != nil {
+		messages[string(uuid)] = m
+	}
+	return m
 }
 
 //Err ...
@@ -165,22 +164,22 @@ func Err(m *Msg, stsMsg string, err int8) *Msg {
 }
 
 //Success ...
-func Success(m *Msg) *Msg {
-	if m.Fields.MsgType() == schema.MsgTypeCMD {
-		return makeImq(m.Fields.MsgId(), name, m.Fields.From(), m.Fields.Broker(), m.Fields.Path(), m.Fields.MsgType(), schema.StsSUCCESS, m.Fields.Cmd(), nil, -1, nil, nil)
-	}
-	return makeImq(m.Fields.MsgId(), name, m.Fields.From(), m.Fields.Broker(), m.Fields.Path(), m.Fields.MsgType(), schema.StsSUCCESS, -1, nil, -1, nil, nil)
+func Success(m *Msg, stsMsg string) *Msg {
+	return makeImq(m.Fields.MsgId(), name, m.Fields.From(), m.Fields.Broker(), m.Fields.Path(), m.Fields.MsgType(), schema.StsSUCCESS, m.Fields.Cmd(), []byte(stsMsg), -1, nil, nil)
 }
 
 //Req ...
 func Req(to string, dest string, msg []byte, callback Handler) *Msg {
 	//encode
-	uuid, uuidErr := newUUID()
+	uuid, uuidErr := newUID()
 	if uuidErr != nil {
 		fmt.Printf("error: %v\n", uuidErr)
 	}
-	return makeImq(uuid, name, []byte(to), 0, []byte(dest), schema.MsgTypePEER, schema.StsREQ, -1, nil, -1, msg, callback)
-
+	m := makeImq(uuid, name, []byte(to), 0, []byte(dest), schema.MsgTypePEER, schema.StsREQ, -1, nil, -1, msg, callback)
+	if callback != nil {
+		messages[string(uuid)] = m
+	}
+	return m
 }
 
 //Rep ...
@@ -196,39 +195,43 @@ func Rep(m *Msg, stsMsg string, msg []byte) *Msg {
 func Sub(path string, handler Handler, callback Handler) *Msg {
 	//make and return a subscribe message
 	//fmt.Println("Path", path)
-	uuid, uuidErr := newUUID()
+	uuid, uuidErr := newUID()
 	if uuidErr != nil {
 		fmt.Printf("error: %v\n", uuidErr)
 	}
 	if handler != nil {
 		SetHandler(path, handler)
 	}
-	return makeImq(uuid, name, nil, 0, []byte(path), schema.MsgTypeCMD, schema.StsREQ, schema.CmdSUB, nil, -1, nil, callback)
+	m := makeImq(uuid, name, nil, 0, []byte(path), schema.MsgTypeCMD, schema.StsREQ, schema.CmdSUB, nil, -1, nil, callback)
+	if callback != nil {
+		messages[string(uuid)] = m
+	}
+	return m
 }
 
 //UnSub ...
-func UnSub(broker bool, path string) *Msg {
+func UnSub(path string, callback Handler) *Msg {
 	//make and return a unsubscribe message
-	uuid, uuidErr := newUUID()
+	uuid, uuidErr := newUID()
 	if uuidErr != nil {
 		fmt.Printf("error: %v\n", uuidErr)
 	}
 	delHandler(path)
-	var hasBroker byte
-	if broker {
-		hasBroker = 1
+	m := makeImq(uuid, name, nil, 0, []byte(path), schema.MsgTypeCMD, schema.StsSUCCESS, schema.CmdUNSUB, nil, -1, nil, callback)
+	if callback != nil {
+		messages[string(uuid)] = m
 	}
-	return makeImq(uuid, name, nil, hasBroker, []byte(path), schema.MsgTypeCMD, schema.StsREQ, schema.CmdUNSUB, nil, -1, nil, nil)
+	return m
 }
 
 //BrokerReplay ...
 func BrokerReplay(m *Msg, handler func(string, *Msg), callback Handler) {
 	var r *Msg
 	if m.Fields.MsgType() == schema.MsgTypeMULT {
-		r = makeImq(m.Fields.MsgId(), m.Fields.To(), m.Fields.From(), 0, m.Fields.Path(), schema.MsgTypeMULT, schema.StsREQ, -1, nil, -1, m.Fields.BodyBytes(), callback)
+		r = makeImq(m.Fields.MsgId(), name, nil, 0, m.Fields.Path(), schema.MsgTypeMULT, schema.StsREQ, -1, nil, -1, m.Fields.BodyBytes(), callback)
 		sendMult(r, handler)
 	} else {
-		r = makeImq(m.Fields.MsgId(), m.Fields.To(), m.Fields.From(), 0, m.Fields.Path(), schema.MsgTypeQUEUE, schema.StsREQ, -1, nil, -1, m.Fields.BodyBytes(), callback)
+		r = makeImq(m.Fields.MsgId(), name, nil, 0, m.Fields.Path(), schema.MsgTypeQUEUE, schema.StsREQ, -1, nil, -1, m.Fields.BodyBytes(), callback)
 		sendQueue(r, handler)
 	}
 
@@ -237,7 +240,7 @@ func BrokerReplay(m *Msg, handler func(string, *Msg), callback Handler) {
 //Mult ...
 func Mult(broker bool, path string, msg []byte, handler func(string, *Msg), callback Handler) *Msg {
 	//make a pub request and call a closure
-	uuid, uuidErr := newUUID()
+	uuid, uuidErr := newUID()
 	if uuidErr != nil {
 		fmt.Printf("error: %v\n", uuidErr)
 	}
@@ -250,6 +253,9 @@ func Mult(broker bool, path string, msg []byte, handler func(string, *Msg), call
 		sendMult(m, handler)
 		return nil
 	}
+	if callback != nil {
+		messages[string(uuid)] = m
+	}
 	return m
 
 }
@@ -261,7 +267,7 @@ func sendMult(m *Msg, handler func(string, *Msg)) {
 
 //Queue ...
 func Queue(broker bool, path string, msg []byte, handler func(string, *Msg), callback Handler) *Msg {
-	uuid, uuidErr := newUUID()
+	uuid, uuidErr := newUID()
 	if uuidErr != nil {
 		fmt.Printf("error: %v\n", uuidErr)
 	}
@@ -270,9 +276,13 @@ func Queue(broker bool, path string, msg []byte, handler func(string, *Msg), cal
 		hasBroker = 1
 	}
 	m := makeImq(uuid, name, nil, hasBroker, []byte(path), schema.MsgTypeQUEUE, schema.StsREQ, -1, nil, -1, msg, callback)
+	fmt.Println(string(m.Fields.Path()))
 	if !broker {
 		sendQueue(m, handler)
 		return nil
+	}
+	if callback != nil {
+		messages[string(uuid)] = m
 	}
 	return m
 
@@ -281,37 +291,40 @@ func sendQueue(m *Msg, handler func(string, *Msg)) {
 	success := false
 	takeNext := false
 	path := string(m.Fields.Path())
-	if len(subscribers[path]) > 0 {
+	if _, ok := subscribers[path]; ok {
+		if len(subscribers[path]) > 0 {
 
-		for k, v := range subscribers[path] {
+			for k, v := range subscribers[path] {
 
-			if takeNext {
-				handler(k, m)
-				subscribers[path][k] = true
-				success = true
-				//fmt.Println("takeNext ", k)
+				if takeNext {
+					handler(k, m)
+					subscribers[path][k] = true
+					success = true
+					//fmt.Println("takeNext ", k)
+				}
+
+				if v {
+					takeNext = true
+					subscribers[path][k] = false
+				}
+			}
+			if !success {
+				for k := range subscribers[path] {
+					handler(k, m)
+					subscribers[path][k] = true
+					//fmt.Println("!success ", k)
+					return
+				}
+
 			}
 
-			if v {
-				takeNext = true
-				subscribers[path][k] = false
-			}
 		}
-		if !success {
-			for k := range subscribers[path] {
-				handler(k, m)
-				subscribers[path][k] = true
-				//fmt.Println("!success ", k)
-				return
-			}
-
-		}
-
 	}
+
 }
 func makeImq(id []byte, from []byte, to []byte, broker byte, path []byte, msgType int8, sts int8, cmd int8, stsMsg []byte, err int8, body []byte, callback Handler) (m *Msg) {
 	//check if already an imqMessage for that id
-	if existing := verifyImqMessage(string(id)); existing != nil {
+	if existing := getImqMessage(string(id)); existing != nil {
 		m = existing
 	} else {
 		m = &Msg{}
@@ -364,9 +377,7 @@ func makeImq(id []byte, from []byte, to []byte, broker byte, path []byte, msgTyp
 
 	//decide if we should add to msg queue
 	m.RawData = &buf
-	if sts == schema.StsREQ && callback != nil {
-		messages[string(id)] = m
-	}
+	m.Fields = schema.GetRootAsImq(buf, 0)
 	return
 }
 
@@ -382,61 +393,39 @@ func RecieveMessage(data *[]byte) (reply *Msg) {
 		//return error?
 		return nil
 	}
-	//fmt.Println("Recieved ", schema.EnumNamesMsgType[int(m.MsgType)], " ", schema.EnumNamesSts[int(m.Sts)], " ", schema.EnumNamesCmd[int(m.Cmd)])
-	if m.Fields.Sts() == schema.StsREQ {
-		if m.Fields.Broker() == 1 {
-			//call broker handler
-			if brokerHandler != nil {
-				reply = brokerHandler(m)
-			} else {
-				fmt.Println("not a broker")
-				reply = Err(m, "not a broker", schema.ErrNO_HANDLER)
-			}
-		} else if len(m.Fields.To()) > 0 && string(m.Fields.To()) != string(name) {
-			//call relay handler
-			if relayHandler != nil {
-				reply = relayHandler(m)
-			} else {
-				fmt.Println("-", m.Fields.To(), "-")
-				fmt.Println("not a relay")
-				reply = Err(m, "not a relay", schema.ErrNO_HANDLER)
-			}
-		} else if m.Fields.MsgType() != schema.MsgTypeCMD {
-			if handler := getHandler(string(m.Fields.Path())); handler != nil {
-				reply = handler(m)
-			}
-		} else {
-			reply = handleCmd(m)
-		}
+	fmt.Println("Recieved ", schema.EnumNamesMsgType[int(m.Fields.MsgType())], " ", schema.EnumNamesSts[int(m.Fields.Sts())], " ", schema.EnumNamesCmd[int(m.Fields.Cmd())])
 
-	} else {
-		if m.Fields.Broker() == 1 {
-			//call broker handler
-			if brokerHandler != nil {
-				reply = brokerHandler(m)
-			} else {
-				fmt.Println("not a broker")
-				reply = Err(m, "not a broker", schema.ErrNO_HANDLER)
-			}
-		} else if len(m.Fields.To()) > 0 && string(m.Fields.To()) != string(name) {
-			//call relay handler
-			if relayHandler != nil {
-				reply = relayHandler(m)
-			} else {
-				fmt.Println("not a relay")
-				reply = Err(m, "not a relay", schema.ErrNO_HANDLER)
-			}
-		} else if m.Fields.MsgType() != schema.MsgTypeCMD {
-			imq := getImqMessage(string(m.Fields.MsgId()))
-			if imq != nil && imq.Callback != nil {
-				imq.Callback(m)
-			}
-			DelMessage(string(m.Fields.MsgId()))
-
+	if m.Fields.Broker() == 1 {
+		//call broker handler
+		if brokerHandler != nil {
+			reply = brokerHandler(m)
 		} else {
-			handleCmd(m)
+			fmt.Println("not a broker")
+			reply = Err(m, "not a broker", schema.ErrNO_HANDLER)
 		}
+	} else if len(m.Fields.To()) > 0 && string(m.Fields.To()) != string(name) {
+		//call relay handler
+		if relayHandler != nil {
+			reply = relayHandler(m)
+		} else {
+			fmt.Println("-", m.Fields.To(), "-")
+			fmt.Println("not a relay")
+			reply = Err(m, "not a relay", schema.ErrNO_HANDLER)
+		}
+	} else if m.Fields.MsgType() == schema.MsgTypeCMD {
+		reply = handleCmd(m)
+	} else if m.Fields.Sts() == schema.StsREQ {
+		if handler := getHandler(string(m.Fields.Path())); handler != nil {
+			reply = handler(m)
+		}
+	} else { //its a reply
+		imq := getImqMessage(string(m.Fields.MsgId()))
+		if imq != nil && imq.Callback != nil {
+			imq.Callback(m)
+		}
+		DelMessage(string(m.Fields.MsgId()))
 	}
+
 	return
 }
 func handleCmd(imq *Msg) (m *Msg) {
@@ -444,46 +433,20 @@ func handleCmd(imq *Msg) (m *Msg) {
 		switch imq.Fields.Cmd() {
 		case schema.CmdSUB:
 			AddSubscriber(string(imq.Fields.From()), string(imq.Fields.Path()))
-			m = Success(imq)
+			m = Success(imq, "")
 		case schema.CmdSYN:
-			m = Success(imq)
+			m = Success(imq, "")
 		case schema.CmdUNSUB:
 			DelSubscriber(string(imq.Fields.From()), string(imq.Fields.Path()))
-			m = Success(imq)
+			m = Success(imq, "")
 		default:
 		}
 	} else {
-		if imq.Fields.Sts() == schema.StsREP || imq.Fields.Sts() == schema.StsSUCCESS {
-			switch imq.Fields.Cmd() {
-			case schema.CmdSUB:
-				msg := getImqMessage(string(imq.Fields.MsgId()))
-				if msg != nil && msg.Callback != nil {
-					msg.Callback(imq)
-				}
-				DelMessage(string(imq.Fields.MsgId()))
-			case schema.CmdSYN:
-				msg := getImqMessage(string(imq.Fields.MsgId()))
-				if msg != nil && msg.Callback != nil {
-					msg.Callback(imq)
-				}
-				DelMessage(string(imq.Fields.MsgId()))
-			case schema.CmdUNSUB:
-				msg := getImqMessage(string(imq.Fields.MsgId()))
-				if msg != nil && msg.Callback != nil {
-					msg.Callback(imq)
-				}
-				DelMessage(string(imq.Fields.MsgId()))
-			default:
-			}
-		} else {
-
-			msg := getImqMessage(string(imq.Fields.MsgId()))
-			if msg != nil && msg.Callback != nil {
-				msg.Callback(imq)
-			}
-			DelMessage(string(imq.Fields.MsgId()))
+		msg := getImqMessage(string(imq.Fields.MsgId()))
+		if msg != nil && msg.Callback != nil {
+			msg.Callback(imq)
 		}
-
+		DelMessage(string(imq.Fields.MsgId()))
 	}
 	return
 }
@@ -499,7 +462,7 @@ func SetName(newName string) {
 var hi = []byte("hi")
 
 // newUUID generates a random UUID according to RFC 4122
-func newUUID() ([]byte, error) {
+func newUID() ([]byte, error) {
 	// uuid := make([]byte, 16)
 	// n, err := io.ReadFull(rand.Reader, uuid)
 	// if n != len(uuid) || err != nil {

@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 	"sync"
-	schema "t4i/IndisRPC/Schema/IndisRPC"
-	imq "t4i/IndisRPC/go/IndisRPC"
+	imq "t4i/IndisMQ/go"
+	schema "t4i/IndisMQ/schema/IndisMQ"
 )
 
 var ws *websocket.Conn
@@ -17,10 +17,10 @@ var sendLock sync.Mutex
 
 func messageRecieved(message *[]byte) {
 	m := imq.RecieveMessage(message)
-	if m != nil && m.Data != nil {
+	if m != nil && m.RawData != nil {
 		// fmt.Println("sending ", m)
 		// fmt.Println(schema.EnumNamesMsgType[int(m.MsgType)], " ", schema.EnumNamesSts[int(m.Sts)], " ", schema.EnumNamesCmd[int(m.Cmd)])
-		sendMessage(m.Data)
+		sendMessage(m.RawData)
 	}
 
 }
@@ -73,11 +73,11 @@ func main() {
 	// })
 	// sendMessage(temp2.Data)
 
-	imq.SetHandler(func(m *imq.ImqMessage) *imq.ImqMessage {
-		fmt.Println(m.From, "says ", string(*m.Msg))
+	imq.SetHandler("/hommy", func(m *imq.Msg) *imq.Msg {
+		fmt.Println(string(m.Fields.From()), "says ", string(m.Fields.StsMsg()))
 		getResponse()
 		return nil
-	}, "/hommy")
+	})
 	// m := imq.Sub(false, "/hommy", func(imqMessage *imq.ImqMessage) *imq.ImqMessage {
 	// 	fmt.Println("recieved hommy message")
 	// 	return nil
@@ -92,15 +92,15 @@ func main() {
 	// sendMessage(m.Data)
 	//getResponse()
 
-	sendMessage(imq.Sub("/hey", func(m *imq.ImqMessage) *imq.ImqMessage {
-		fmt.Println("hey message recieved ", string(*m.Msg))
-		return imq.Success(m)
-	}, func(m *imq.ImqMessage) *imq.ImqMessage {
-		if m.Sts == schema.StsSUCCESS {
+	sendMessage(imq.Sub("/hello", func(m *imq.Msg) *imq.Msg {
+		fmt.Println(string(m.Fields.From()), "says hey ", string(m.Fields.StsMsg()))
+		return imq.Success(m, "")
+	}, func(m *imq.Msg) *imq.Msg {
+		if m.Fields.Sts() == schema.StsSUCCESS {
 			fmt.Println("subscribed")
 		}
 		return nil
-	}).Data)
+	}).RawData)
 	wg.Wait()
 	fmt.Println("exit")
 }
@@ -108,6 +108,6 @@ func getResponse() {
 	reader := bufio.NewScanner(os.Stdin)
 	fmt.Print("What do you say: ")
 	reader.Scan()
-	text := []byte(reader.Text())
-	sendMessage(imq.Req("Client2", "/hommy", &text, nil).Data)
+	// /text := []byte(reader.Text())
+	sendMessage(imq.Req("Client2", "/hommy", nil, nil).RawData)
 }
