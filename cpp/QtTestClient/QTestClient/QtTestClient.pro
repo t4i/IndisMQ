@@ -13,7 +13,8 @@ SOURCES += main.cpp
 
 HEADERS += \
     indis_rpc.h \
-    ../indis_rpc.h
+    ../indis_rpc.h \
+    ../../indis_rpc.h
 
 DISTFILES +=
 

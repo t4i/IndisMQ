@@ -9,34 +9,74 @@
 #include <map>
 #include <mutex>
 #include <time.h>
+#ifdef QT_CORE_LIB
+#include <QDebug>
+#include <QByteArray>
+#include <QString>
+
+#else
+
+#endif
+#ifdef QT_CORE_LIB
+#define BUFFER_TYPE QByteArray
+#define STRING_TYPE QString
+#else
+#define BUFFER_TYPE std::unique_ptr<uint8_t>
+#define STRING_TYPE std::string
+#endif
 namespace schema=IndisMQ;
 namespace imq{
 struct Msg;
-typedef std::unique_ptr<Msg> (*Handler)(Msg* m); //need to think about owership of return and pass in
+typedef std::shared_ptr<Msg> shared_msg;
+typedef shared_msg (*Handler)(shared_msg &m);
+std::string newUid( size_t length =16 )
+{
+    auto randchar = []() -> char
+    {
+            const char charset[] =
+            "0123456789"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz";
+            const size_t max_index = (sizeof(charset) - 1);
+            return charset[ rand() % max_index ];
+};
+std::string str(length,0);
+std::generate_n( str.begin(), length, randchar );
+return str;
+}
 struct Msg{
-    std::string id;
-    std::string from;
-    std::string to;
-    std::unique_ptr<Handler> callback;
-    std::unique_ptr<std::vector<uint8_t>> data;
-    std::unique_ptr<std::vector<uint8_t>> body;
-    bool broker;
-    schema::Sts sts;
-    schema::Err err;
-    std::string stsMsg;
-    schema::Cmd cmd;
-    std::string path;
-    schema::MsgType msgType;
-    bool hasCallback;
+    Handler callback;
+    const schema::Imq* fields;
+#ifdef QT_CORE_LIB
+    QByteArray data;
+    void setFbData(flatbuffers::unique_ptr_t _data,int size){
+        fbData=std::move(_data);
+        data=QByteArray::fromRawData(reinterpret_cast<const char *>(fbData.get()),size);
+    }
+
+private:
+    flatbuffers::unique_ptr_t fbData;
+#else
+    void setFbData(flatbuffers::unique_ptr_t _data, int size){
+        data=std::move(_data);
+        datasize=size;
+    }
+    flatbuffers::unique_ptr_t data;
+    int dataSize;
+#endif
+
+    //    to convert fb vector to std vector new std::vector<uint8_t>(fields->Body()->data(),fields->Body()->data()+fields->Body()->size())
 };
 
-
-std::unordered_map<int,std::unique_ptr<Handler>> handlers;
+std::string name="unamed";
+std::unordered_map<std::string,Handler> handlers;
 Handler brokerHandler;
 Handler relayHandler;
 
 std::unordered_map<std::string,std::shared_ptr<Msg>> messages;
 std::unordered_map<std::string,std::unordered_map<std::string,bool>> subscribers;
+std::unique_ptr<Msg> makeImq(std::string id, std::string from, std::string to, bool broker, std::string path,
+                             schema::MsgType msgType, schema::Sts sts, schema::Cmd cmd, std::string stsMsg, schema::Err err, std::unique_ptr<std::vector<uint8_t>> body,Handler callback);
 bool debug=false;
 
 void setBrokerHandler(Handler handler){
@@ -45,255 +85,352 @@ void setBrokerHandler(Handler handler){
 void setRelayHandler(Handler handler){
     relayHandler=handler;
 }
-std::unique_ptr<Msg> parseMsg(std::unique_ptr<std::vector<uint8_t>> data){
+
+
+
+
+//m->rawData=std::move(std::unique_ptr<uint8_t>(data));
+#ifdef QT_CORE_LIB
+std::unique_ptr<Msg> parseMsg(BUFFER_TYPE data){
+    if(data.isEmpty()){
+        return nullptr;
+    }
+    std::unique_ptr<Msg> m=std::unique_ptr<Msg>(new Msg());
+    m->data=data;
+    m->fields=schema::GetImq(m->data.data());
+    return m;
+}
+#endif
+#ifndef QT_CORE_LIB //this would be useful for qt but needs to be worked out
+std::unique_ptr<Msg> parseMsg(std::unique_ptr<uint8_t> data, int dataSize){
     if(data==nullptr){
         return nullptr;
     }
     std::unique_ptr<Msg> m=std::unique_ptr<Msg>(new Msg());
-    auto imq=schema::GetImq(data.get());
-    m->id=imq->MsgId()->str();
-    m->sts=imq->Sts();
-    m->body=std::unique_ptr<std::vector<uint8_t>>(new std::vector<uint8_t>(imq->Body()->data(),imq->Body()->data()+imq->Body()->size()));
-    m->err=imq->Err();
-    m->stsMsg=imq->StsMsg()->str();
-    m->path=imq->Path()->str();
-    m->cmd=imq->Cmd();
-    m->msgType=imq->MsgType();
-    m->from=imq->From()->str();
-    m->to=imq->To()->str();
-    m->hasCallback=imq->Callback();
-    m->broker=imq->Broker();
-    m->data=move(data);
+
+    //unimplemented
+
+    m->data(flatbuffers::unique_ptr_t(data.release(),[](uint8_t* p){delete [] p;});
+    //m->fields=schema::GetImq(m->rawData.get());
+    m->rawDataSize=dataSize;
+
+    return m;
+}
+#endif
+
+Msg* getImqMessage(std::string id){
+    auto it=messages.find(id);
+    if(it==messages.end()){
+        return nullptr;
+    }
+    return messages[id].get();
+}
+
+//template<typename statusFunc>
+//void writeStatus(std::string id,statusFunc f){
+//    f(getRPCStatus(id));
+//}
+//template<typename statusFunc>
+//void readStatus(std::string id,statusFunc f){
+//    f(getRPCStatus(id));
+//}
+
+void delMessage(std::string id){
+    messages.erase(id);
+}
+
+void addSubscriber(std::string client, std::string path){
+    auto it=subscribers.find(path);
+    if(it==subscribers.end()){
+        subscribers[path]=std::unordered_map<std::string,bool>();
+    }
+    subscribers[path][client]=false;
+}
+void delSubscriber(std::string client, std::string path){
+    auto it=subscribers.find(path);
+    if(it!=subscribers.end()){
+        subscribers[path].erase(client);
+    }
+}
+
+void setHandler(std::string path,Handler handler){
+    handlers[path]=handler;
+}
+
+Handler getHandler(std::string path){
+    auto handler=handlers.find(path);
+    if(handler!=handlers.end()){
+        return handlers[path];
+    }
+    return nullptr;
+}
+
+
+std::unique_ptr<Msg> syn(std::string stsMsg, Handler callback){
+    std::string uid=newUid();
+    return makeImq(uid,name,"",false,"",schema::MsgType::CMD,schema::Sts::REQ,schema::Cmd::SYN,stsMsg,schema::Err::NONE,nullptr,callback);
+}
+
+std::unique_ptr<Msg> err (std::shared_ptr<Msg> &m,std::string stsMsg, schema::Err err){
+    return makeImq(m->fields->MsgId()->str(),name,m->fields->From()->str(),m->fields->Broker(),m->fields->Path()->str(),
+                   m->fields->MsgType(),schema::Sts::ERROR,m->fields->Cmd(),stsMsg,err,nullptr,nullptr);
+}
+
+std::unique_ptr<Msg> success (std::shared_ptr<Msg> &m,std::string stsMsg){
+    return makeImq(m->fields->MsgId()->str(),name,m->fields->From()->str(),m->fields->Broker(),m->fields->Path()->str(),
+                   m->fields->MsgType(),schema::Sts::SUCCESS,m->fields->Cmd(),stsMsg,schema::Err::NONE,nullptr,nullptr);
+}
+std::shared_ptr<Msg>& req(std::string to, std::string dest,std::string stsMsg, std::unique_ptr<std::vector<uint8_t>> body,Handler callback){
+    std::string uid=newUid();
+    auto m=std::shared_ptr<Msg>(std::move(makeImq(uid,name,to,false,dest,schema::MsgType::PEER,schema::Sts::REQ,
+                                                  schema::Cmd::NONE,"",schema::Err::NONE,std::move(body),callback)));
+    if(callback){
+        messages[uid]=m;
+    }
+    return m;
+}
+std::unique_ptr<Msg>& rep (std::shared_ptr<Msg> &m,std::string stsMsg,std::unique_ptr<std::vector<uint8_t>> body){
+
+    return makeImq(m->fields->MsgId()->str(),name,m->fields->From()->str(),m->fields->Broker(),m->fields->Path()->str(),
+                   m->fields->MsgType(),schema::Sts::SUCCESS,m->fields->Cmd(),stsMsg,schema::Err::NONE,std::move(body),nullptr);
+}
+std::shared_ptr<Msg>& sub(std::string path,Handler handler,Handler callback){
+    std::string uid=newUid();
+    if(handler){
+        setHandler(path,handler);
+    }
+    auto m=std::shared_ptr<Msg>(std::move(makeImq(uid,name,"",false,path,schema::MsgType::CMD,schema::Sts::REQ,
+                                                  schema::Cmd::SUB,"",schema::Err::NONE,nullptr,callback)));
+    if(callback){
+        messages[uid]=m;
+    }
+    return m;
+}
+
+std::shared_ptr<Msg>& unSub(std::string path, Handler callback){
+    std::string uid=newUid();
+    handlers.erase(path);
+    auto m=std::shared_ptr<Msg>(std::move(makeImq(uid,name,"",false,"",schema::MsgType::CMD,
+                                                  schema::Sts::SUCCESS,schema::Cmd::UNSUB,"",schema::Err::NONE,nullptr,callback)));
+    if(callback){
+        messages[uid]=m;
+    }
+    return m;
+}
+void sendMult(std::shared_ptr<Msg>& m,void(*f)(std::string client,std::shared_ptr<Msg>& m)){
+    std::string path=m->fields->Path()->str();
+    for (auto i: subscribers[path]){
+        f(i.first,m);
+    }
+}
+void sendQueue(std::shared_ptr<Msg> &m,void(*f)(std::string client,std::shared_ptr<Msg>& m)){
+    bool success=false;
+    bool takeNext=false;
+    std::string path=m->fields->Path()->str();
+    for (auto i: subscribers[path]){
+        if(takeNext){
+            f(i.first,m);
+            subscribers[path][i.first]=true;
+            success=true;
+        }
+        if(i.second){
+            takeNext=true;
+            subscribers[path][i.first]=false;
+        }
+    }
+    if(!success){
+        for (auto i: subscribers[path]){
+            f(i.first,m);
+            subscribers[path][i.first]=true;
+        }
+    }
+}
+void brokerReplay(Msg *m,void(*f)(std::string, std::shared_ptr<Msg>& m),Handler callback){
+
+    std::unique_ptr<std::vector<uint8_t>> body(new std::vector<uint8_t>(m->fields->Body()->data(),m->fields->Body()->data()+m->fields->Body()->size()));
+    auto r=std::shared_ptr<Msg>(std::move(makeImq(m->fields->MsgId()->str(),m->fields->To()->str(),m->fields->From()->str(),false,m->fields->Path()->str(),
+                                                  m->fields->MsgType(),m->fields->Sts(),m->fields->Cmd(),m->fields->StsMsg()->str(),m->fields->Err(),std::move(body),callback)));
+    if( m->fields->MsgType()==schema::MsgType::MULT){
+
+        sendMult(std::move(r),f);
+    }
+    else{
+        sendQueue(r,f);
+    }
+
+}
+
+
+std::shared_ptr<Msg>& Mult(bool broker, std::string path, std::unique_ptr<std::vector<uint8_t>> body,
+                           void(*f)(std::string, std::shared_ptr<Msg>& m),Handler callback ){
+    std::string uid=newUid();
+    auto m=std::shared_ptr<Msg>(std::move(makeImq(uid,name,"",broker,path,schema::MsgType::MULT,schema::Sts::REQ,
+                                                  schema::Cmd::NONE,"",schema::Err::NONE,std::move(body),callback)));
+
+    if(!broker){
+        sendMult(m,f);
+    }
+    if(callback){
+        messages[uid]=m;
+    }
     return m;
 
 }
 
 
-std::shared_ptr<rpcStatus> getRPCStatus(std::string id){
-    auto it=status.find(id);
 
-    if(it==status.end()){
-        std::shared_ptr<rpcStatus> rpcStatus(new rpcStatus);
-        status[id]=rpcStatus;
-        return rpcStatus;
+std::shared_ptr<Msg>& Queue(bool broker, std::string path, std::unique_ptr<std::vector<uint8_t>> body,
+                            void(*f)(std::string, std::shared_ptr<Msg>& m),Handler callback){
+    std::string uid=newUid();
+    auto m=std::shared_ptr<Msg>(std::move(makeImq(uid,name,"",broker,path,schema::MsgType::QUEUE,schema::Sts::REQ,
+                                                  schema::Cmd::NONE,"",schema::Err::NONE,std::move(body),callback)));
+
+    if(!broker){
+        sendQueue(m,f);
     }
-    else{
-        return status[id];
+    if(callback){
+        messages[uid]=m;
     }
+    return m;
 
 }
 
 
+std::unique_ptr<Msg> makeImq(std::string id, std::string from, std::string to, bool broker, std::string path,
+                             schema::MsgType msgType, schema::Sts sts, schema::Cmd cmd, std::string stsMsg, schema::Err err, std::unique_ptr<std::vector<uint8_t>> body,Handler callback){
+    std::unique_ptr<Msg> m(new Msg());
 
-
-void callCallback(std::shared_ptr<rpcStatus> rpc){
-    auto temp=status;
-    if(rpc!=NULL&&rpc->rpcType!=NULL){
-        auto callbackPtr=rpc->callback;
-        if(callbackPtr!=NULL){
-            auto callback=*callbackPtr;
-            callback(rpc);
-        }
-    }
-}
-
-template<typename statusFunc>
-void writeStatus(std::string id,statusFunc f){
-    f(getRPCStatus(id));
-}
-template<typename statusFunc>
-void readStatus(std::string id,statusFunc f){
-    f(getRPCStatus(id));
-}
-
-void delStatus(std::string id){
-    //status.erase(id);
-}
-void setHandler(rpcHandler *handler, int rpcType){
-    handlers[rpcType]=std::unique_ptr<rpcHandler>(handler);
-}
-rpcHandler* getHandler(int rpcType){
-    auto handler=handlers.find(rpcType);
-    if(handler!=handlers.end()){
-        return handlers[rpcType].get();
-    }
-    return NULL;
-}
-
-
-
-void setSender(rpcSender *senderFunc){
-    sender=*senderFunc;
-}
-rpcSender getSender(){
-    return sender;
-}
-void sendRaw(std::string id, int rpcType, schema::State state, schema::Sts sts,std::string msg, std::vector<uint8_t> &data);
-void sendStatus(std::string id, schema::Sts sts, std::string msg=NULL){
-    sendRaw(id,-1,schema::State::STS,sts,msg,std::vector<uint8_t>());
-}
-
-void callHandler(std::shared_ptr<rpcStatus> rpc){
-    if(rpc!=NULL&&rpc->rpcType!=NULL){
-        auto handlerPtr=getHandler(rpc->rpcType);
-        if(handlerPtr!=NULL){
-            auto handler=*handlerPtr;
-            handler(rpc);
-        }
-    }
-
-}
-int seq=1;
-void sendRawReq(int rpcType,std::vector<uint8_t>& data, int timeout=NULL, int retries=NULL, rpcCallback* callback=NULL){
-    std::string uuid=std::to_string(seq);
-    seq++;
-    auto timestamp=time(NULL);
-    writeStatus(uuid,[&](std::shared_ptr<rpcStatus> val){
-        if(callback){
-            val->callback=std::shared_ptr<rpcCallback>(callback);
-        }
-        val->timestamp=timestamp;
-        if(timeout!=NULL){
-            val->timeout=timeout;
-        }
-        val->retries=retries;
-        val->retry=0;
-
-    });
-
-
-
-
-    sendRaw(uuid,rpcType,schema::State::REQ,schema::Sts::SENT,"",data);
-}
-void resendRawReq(std::shared_ptr<rpcStatus> rpc){
-    writeStatus(rpc->id, [&](std::shared_ptr<rpcStatus> val) {
-        val->retry++;
-        val->timestamp=time(NULL);
-    });
-    auto status=getRPCStatus(rpc->id);
-    sender(status->reqData.get(),status->reqDataSize);
-    //    readStatus(rpc->id,[](std::shared_ptr<rpcStatus> val){
-    //       sender(val->reqData.get(),val->reqDataSize);
-    //    });
-
-}
-
-void sendRawRes(std::string id, std::string msg,std::vector<uint8_t>& data){
-    sendRaw(id,-1,schema::State::RES,schema::Sts::RECIEVED,msg,data);
-}
-void sendRaw(std::string id, int rpcType, schema::State state, schema::Sts sts, std::string msg, std::vector<uint8_t>& data){
     flatbuffers::FlatBufferBuilder builder;
-    auto rpcID=builder.CreateString(id);
-    auto dataOffset=builder.CreateVector(data);
-    auto message=builder.CreateString(msg);
-    schema::RPCBuilder rpcBuilder(builder);
-    rpcBuilder.add_Id(rpcID);
-    rpcBuilder.add_State(state);
-    rpcBuilder.add_State(schema::State::REQ);
-    if(&data!=NULL){
+    auto idOffset=builder.CreateString(id);
+    auto fromOffset=builder.CreateString(from);
+    auto toOffset=builder.CreateString(to);
+    auto pathOffset=builder.CreateString(path);
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> dataOffset;
+    if(body){
+        dataOffset=builder.CreateVector(*body);
+    }
+    auto message=builder.CreateString(stsMsg);
+    schema::ImqBuilder imqBuilder(builder);
+    imqBuilder.add_MsgId(idOffset);
+    imqBuilder.add_From(fromOffset);
+    imqBuilder.add_To(toOffset);
+    imqBuilder.add_Broker(broker);
+    imqBuilder.add_Path(pathOffset);
+    imqBuilder.add_MsgType(msgType);
+    imqBuilder.add_Sts(sts);
+    imqBuilder.add_Cmd(cmd);
+    if(!stsMsg.empty()){
 
-        rpcBuilder.add_Data(dataOffset);
+        imqBuilder.add_StsMsg(message);
     }
-    if(!msg.empty()){
+    imqBuilder.add_Err(err);
+    if(body){
 
-        rpcBuilder.add_StsMsg(message);
+        imqBuilder.add_Body(dataOffset);
     }
-    if(rpcType!=-1){
-        rpcBuilder.add_Type(rpcType);
-    }
-    auto rpc=rpcBuilder.Finish();
-    builder.Finish(rpc);
-    uint8_t* buf=builder.GetBufferPointer();
+
+    auto imq=imqBuilder.Finish();
+    builder.Finish(imq);
     auto size=builder.GetSize();
-    writeStatus(id, [&](std::shared_ptr<rpcStatus> val) {
-        val->id = id;
-        val->sts = sts;
-        val->rpcType=rpcType;
-        if (rpcType == (int)schema::State::REQ) {
-            val->reqData = std::unique_ptr<uint8_t>(buf);
-            val->reqDataSize=size;
-        }
-        if (rpcType == (int)schema::State::RES) {
-            val->resData = std::unique_ptr<uint8_t>(buf);
-            val->resDataSize=size;
-        }
-        if (&data != NULL) {
-            val->data = std::unique_ptr<std::vector<uint8_t>>(&data);
-        }
-    });
-    sender(buf,size);
+    auto buf=builder.ReleaseBufferPointer();
+    if(callback){
+        m->callback=callback;
 
+    }
+    m->fields=schema::GetImq(buf.get());
+    m->setFbData(std::move(buf),size);
+    return m;
+}
+std::shared_ptr<Msg> handleCmd(std::shared_ptr<Msg>& m){
+    auto sts=m->fields->Sts();
+    if(sts==schema::Sts::REQ){
+        std::shared_ptr<Msg> r;
+        switch(m->fields->Cmd()){
+        case schema::Cmd::SUB:
+            addSubscriber(m->fields->From()->str(),m->fields->Path()->str());
+            r=std::shared_ptr<Msg>(std::move(success(m,"")));
+            break;
+        case schema::Cmd::UNSUB:
+            delSubscriber(m->fields->From()->str(),m->fields->Path()->str());
+            return nullptr;
+            break;
+        case schema::Cmd::SYN:
+            r=std::shared_ptr<Msg>(std::move(success(m,"")));
+            break;
+        default:
+            break;
+        }
+        return r;
+    }else{
+        auto imq=getImqMessage(m->fields->MsgId()->str());
+        if(imq&&imq->callback){
+            imq->callback(m);
+        }
+        delMessage(m->fields->MsgId()->str());
+        return nullptr;
+    }
 }
 
-void recieveRawData(const void *data){
 
-    auto rpc=schema::GetRPC(data);
-    auto id=rpc->Id()->str();
-    auto rawData=(uint8_t*)rpc->Data()->data();
-    switch(rpc->State()){
-    case schema::State::REQ:
-    {
-        writeStatus(id,[&](std::shared_ptr<rpcStatus> val){
-            val->reqData=std::unique_ptr<uint8_t>(rawData);
-        });
-        callHandler(getRPCStatus(id));
+
+
+
+#ifdef QT_CORE_LIB
+std::shared_ptr<Msg> recieveRawData(BUFFER_TYPE data){
+    if(data.isEmpty()){
+        return nullptr;
     }
-        break;
-    case schema::State::RES:
-    {
-        writeStatus(id,[&](std::shared_ptr<rpcStatus> val){
-            val->resData=std::unique_ptr<uint8_t>(rawData);
-            val->sts=schema::Sts::RECIEVED;
-            callCallback(val);
-            delStatus(id);
-        });
-
+    auto m=std::shared_ptr<Msg>(std::move(parseMsg(data)));
+#else
+std::shared_ptr<Msg> recieveRawData(BUFFER_TYPE data,int dataSize=NULL){
+    auto m=std::shared_ptr<Msg>(std::move(parseMsg(std::move(data),dataSize)));
+    if (!data){
+        return nullptr;
     }
-        break;
-    case schema::State::STS:
-    {
-        switch(rpc->Sts()){
-        case schema::Sts::ERROR:
-            writeStatus(id,[&](std::shared_ptr<rpcStatus> val){
-                val->sts=schema::Sts::ERROR;
-                val->err=rpc->Err();
-                val->msg=rpc->StsMsg()->str();
-                callCallback(val);
-            });
-            break;
-        case schema::Sts::SENT:
-            writeStatus(id,[&](std::shared_ptr<rpcStatus> val){val->sts=schema::Sts::SENT;});
-            break;
-        case schema::Sts::ACK:
-            writeStatus(id,[&](std::shared_ptr<rpcStatus> val){val->sts=schema::Sts::ACK;});
-            break;
-        case schema::Sts::RECIEVED:
-            writeStatus(id,[&](std::shared_ptr<rpcStatus> val){
-                val->resData=std::unique_ptr<uint8_t>(rawData);
-                val->sts=schema::Sts::RECIEVED;
-                callHandler(getRPCStatus(id));
-                delStatus(id);
-            });
 
-            break;
-        case schema::Sts::CANCELED:
-            writeStatus(id,[&](std::shared_ptr<rpcStatus> val){delStatus(id);});
-            break;
-        case schema::Sts::FINISHED:;
-            writeStatus(id,[&](std::shared_ptr<rpcStatus> val){delStatus(id);});
-            break;
+#endif
+std::shared_ptr<Msg> reply;
+    //    std::unique_ptr<Msg> n=std::unique_ptr<Msg>(new Msg());
+    //    n->fields=schema::GetImq(data);
+    //    //n->rawData=std::move(std::unique_ptr<uint8_t>(data));
+    //    //n->rawDataSize=dataSize;
+    //    auto m=std::shared_ptr<Msg>(std::move(n));
+
+    //qDebug()<<m->fields->MsgId()->c_str();
+    if (!m){
+        return nullptr;
+    }
+    if(m->fields->Broker()){ //its a broker req
+        if(brokerHandler){
+
+            reply=brokerHandler(m);
+        }else{
+            reply=std::shared_ptr<Msg>(std::move(err(m,"Not a Broker",schema::Err::NO_HANDLER)));
         }
+    }else if(!m->fields->To()->str().empty()&&m->fields->To()->str()!=name){ //its a relay
+        if(relayHandler){
+            reply=relayHandler(m);
+        }else{
+            reply=err(m,"Not a Relay", schema::Err::NO_HANDLER);
+        }
+    }else if(m->fields->MsgType()==schema::MsgType::CMD){ //its a cmd
+        reply=handleCmd(m);
+    }else if(m->fields->Sts()==schema::Sts::REQ){ //its a new req
+        if(auto handler=getHandler(m->fields->Path()->str())){
+            reply=handler(m);
+        }
+    }else{ //its a reply
+        auto imq=getImqMessage(m->fields->MsgId()->str());
+        if(imq&&imq->callback){
+            imq->callback(m);
+        }
+        delMessage(m->fields->MsgId()->str());
+        return nullptr;
     }
-        break;
-    default:;
-        break;
-    }
+    return reply;
 }
 }
-//std::string newUUID(){
 
-//}
 
 
 #endif // INDIS_RPC_H
