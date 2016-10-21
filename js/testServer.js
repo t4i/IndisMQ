@@ -4,6 +4,10 @@ var t = indisMQ_1.imq.req("", "", null, null);
 console.log(t.fields.MsgId());
 console.log("still made it");
 indisMQ_1.imq.setName("browser");
+indisMQ_1.imq.setHandler("/what", function (m) {
+    console.log("say what");
+    return indisMQ_1.imq.success(m, "got it");
+});
 var ws = new WebSocket("ws://localhost:7000/test");
 ws.binaryType = "arraybuffer";
 ws.onopen = function (event) {

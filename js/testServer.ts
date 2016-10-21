@@ -5,6 +5,10 @@ var t=imq.req("","",null,null)
 console.log(t.fields.MsgId())
 console.log("still made it")
 imq.setName("browser")
+imq.setHandler("/what",function(m:imq.Msg):imq.Msg{
+    console.log("say what")
+    return imq.success(m,"got it")
+})
 var ws=new WebSocket("ws://localhost:7000/test")
 ws.binaryType="arraybuffer"
 ws.onopen=function(event){
