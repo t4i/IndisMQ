@@ -87,12 +87,36 @@ var IndisMQ;
         };
         ;
         /**
+         * @param {number} value
+         * @returns {boolean}
+         */
+        Ver.prototype.mutate_Major = function (value) {
+            var offset = this.bb.__offset(this.bb_pos, 0);
+            if (offset === 0) {
+                return false;
+            }
+            this.bb.writeInt8(this.bb_pos + offset, value);
+            return true;
+        };
+        /**
          * @returns {number}
          */
         Ver.prototype.Minor = function () {
             return this.bb.readInt8(this.bb_pos + 1);
         };
         ;
+        /**
+         * @param {number} value
+         * @returns {boolean}
+         */
+        Ver.prototype.mutate_Minor = function (value) {
+            var offset = this.bb.__offset(this.bb_pos, 1);
+            if (offset === 0) {
+                return false;
+            }
+            this.bb.writeInt8(this.bb_pos + offset, value);
+            return true;
+        };
         /**
          * @param {flatbuffers.Builder} builder
          * @param {number} Major
@@ -197,6 +221,18 @@ var IndisMQ;
         };
         ;
         /**
+         * @param {boolean} value
+         * @returns {boolean}
+         */
+        Imq.prototype.mutate_Broker = function (value) {
+            var offset = this.bb.__offset(this.bb_pos, 10);
+            if (offset === 0) {
+                return false;
+            }
+            this.bb.writeInt8(this.bb_pos + offset, +value);
+            return true;
+        };
+        /**
          * @returns {IndisMQ.Cmd}
          */
         Imq.prototype.Cmd = function () {
@@ -204,6 +240,18 @@ var IndisMQ;
             return offset ? (this.bb.readInt8(this.bb_pos + offset)) : IndisMQ.Cmd.NONE;
         };
         ;
+        /**
+         * @param {IndisMQ.Cmd} value
+         * @returns {boolean}
+         */
+        Imq.prototype.mutate_Cmd = function (value) {
+            var offset = this.bb.__offset(this.bb_pos, 12);
+            if (offset === 0) {
+                return false;
+            }
+            this.bb.writeInt8(this.bb_pos + offset, value);
+            return true;
+        };
         Imq.prototype.MsgId = function (optionalEncoding) {
             var offset = this.bb.__offset(this.bb_pos, 14);
             return offset ? this.bb.__string(this.bb_pos + offset, optionalEncoding) : null;
@@ -218,6 +266,18 @@ var IndisMQ;
         };
         ;
         /**
+         * @param {IndisMQ.MsgType} value
+         * @returns {boolean}
+         */
+        Imq.prototype.mutate_MsgType = function (value) {
+            var offset = this.bb.__offset(this.bb_pos, 16);
+            if (offset === 0) {
+                return false;
+            }
+            this.bb.writeInt8(this.bb_pos + offset, value);
+            return true;
+        };
+        /**
          * @returns {IndisMQ.Sts}
          */
         Imq.prototype.Sts = function () {
@@ -225,6 +285,18 @@ var IndisMQ;
             return offset ? (this.bb.readInt8(this.bb_pos + offset)) : IndisMQ.Sts.NONE;
         };
         ;
+        /**
+         * @param {IndisMQ.Sts} value
+         * @returns {boolean}
+         */
+        Imq.prototype.mutate_Sts = function (value) {
+            var offset = this.bb.__offset(this.bb_pos, 18);
+            if (offset === 0) {
+                return false;
+            }
+            this.bb.writeInt8(this.bb_pos + offset, value);
+            return true;
+        };
         Imq.prototype.Path = function (optionalEncoding) {
             var offset = this.bb.__offset(this.bb_pos, 20);
             return offset ? this.bb.__string(this.bb_pos + offset, optionalEncoding) : null;
@@ -238,6 +310,18 @@ var IndisMQ;
             return offset ? (this.bb.readInt8(this.bb_pos + offset)) : IndisMQ.Err.NONE;
         };
         ;
+        /**
+         * @param {IndisMQ.Err} value
+         * @returns {boolean}
+         */
+        Imq.prototype.mutate_Err = function (value) {
+            var offset = this.bb.__offset(this.bb_pos, 22);
+            if (offset === 0) {
+                return false;
+            }
+            this.bb.writeInt8(this.bb_pos + offset, value);
+            return true;
+        };
         Imq.prototype.StsMsg = function (optionalEncoding) {
             var offset = this.bb.__offset(this.bb_pos, 24);
             return offset ? this.bb.__string(this.bb_pos + offset, optionalEncoding) : null;
@@ -251,6 +335,18 @@ var IndisMQ;
             return offset ? !!this.bb.readInt8(this.bb_pos + offset) : false;
         };
         ;
+        /**
+         * @param {boolean} value
+         * @returns {boolean}
+         */
+        Imq.prototype.mutate_Callback = function (value) {
+            var offset = this.bb.__offset(this.bb_pos, 26);
+            if (offset === 0) {
+                return false;
+            }
+            this.bb.writeInt8(this.bb_pos + offset, +value);
+            return true;
+        };
         /**
          * @param {IndisMQ.Ver=} obj
          * @returns {IndisMQ.Ver}
