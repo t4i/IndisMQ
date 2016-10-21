@@ -92,7 +92,9 @@ MANUALLY_ALIGNED_STRUCT(1) Ver FLATBUFFERS_FINAL_CLASS {
     : Major_(flatbuffers::EndianScalar(_Major)), Minor_(flatbuffers::EndianScalar(_Minor)) { }
 
   int8_t Major() const { return flatbuffers::EndianScalar(Major_); }
+  void mutate_Major(int8_t _Major) { flatbuffers::WriteScalar(&Major_, _Major); }
   int8_t Minor() const { return flatbuffers::EndianScalar(Minor_); }
+  void mutate_Minor(int8_t _Minor) { flatbuffers::WriteScalar(&Minor_, _Minor); }
 };
 STRUCT_END(Ver, 2);
 
@@ -129,18 +131,31 @@ struct Imq FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_VER = 28
   };
   const flatbuffers::Vector<uint8_t> *Body() const { return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_BODY); }
+  flatbuffers::Vector<uint8_t> *mutable_Body() { return GetPointer<flatbuffers::Vector<uint8_t> *>(VT_BODY); }
   const flatbuffers::String *From() const { return GetPointer<const flatbuffers::String *>(VT_FROM); }
+  flatbuffers::String *mutable_From() { return GetPointer<flatbuffers::String *>(VT_FROM); }
   const flatbuffers::String *To() const { return GetPointer<const flatbuffers::String *>(VT_TO); }
+  flatbuffers::String *mutable_To() { return GetPointer<flatbuffers::String *>(VT_TO); }
   bool Broker() const { return GetField<uint8_t>(VT_BROKER, 0) != 0; }
+  bool mutate_Broker(bool _Broker) { return SetField(VT_BROKER, static_cast<uint8_t>(_Broker)); }
   Cmd Cmd() const { return static_cast<Cmd>(GetField<int8_t>(VT_CMD, 0)); }
+  bool mutate_Cmd(Cmd _Cmd) { return SetField(VT_CMD, static_cast<int8_t>(_Cmd)); }
   const flatbuffers::String *MsgId() const { return GetPointer<const flatbuffers::String *>(VT_MSGID); }
+  flatbuffers::String *mutable_MsgId() { return GetPointer<flatbuffers::String *>(VT_MSGID); }
   MsgType MsgType() const { return static_cast<MsgType>(GetField<int8_t>(VT_MSGTYPE, 0)); }
+  bool mutate_MsgType(MsgType _MsgType) { return SetField(VT_MSGTYPE, static_cast<int8_t>(_MsgType)); }
   Sts Sts() const { return static_cast<Sts>(GetField<int8_t>(VT_STS, 0)); }
+  bool mutate_Sts(Sts _Sts) { return SetField(VT_STS, static_cast<int8_t>(_Sts)); }
   const flatbuffers::String *Path() const { return GetPointer<const flatbuffers::String *>(VT_PATH); }
+  flatbuffers::String *mutable_Path() { return GetPointer<flatbuffers::String *>(VT_PATH); }
   Err Err() const { return static_cast<Err>(GetField<int8_t>(VT_ERR, 0)); }
+  bool mutate_Err(Err _Err) { return SetField(VT_ERR, static_cast<int8_t>(_Err)); }
   const flatbuffers::String *StsMsg() const { return GetPointer<const flatbuffers::String *>(VT_STSMSG); }
+  flatbuffers::String *mutable_StsMsg() { return GetPointer<flatbuffers::String *>(VT_STSMSG); }
   bool Callback() const { return GetField<uint8_t>(VT_CALLBACK, 0) != 0; }
+  bool mutate_Callback(bool _Callback) { return SetField(VT_CALLBACK, static_cast<uint8_t>(_Callback)); }
   const Ver *Ver() const { return GetStruct<const Ver *>(VT_VER); }
+  Ver *mutable_Ver() { return GetStruct<Ver *>(VT_VER); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<flatbuffers::uoffset_t>(verifier, VT_BODY) &&
@@ -280,6 +295,10 @@ inline flatbuffers::Offset<Imq> CreateImq(flatbuffers::FlatBufferBuilder &_fbb, 
 
 inline const IndisMQ::Imq *GetImq(const void *buf) {
   return flatbuffers::GetRoot<IndisMQ::Imq>(buf);
+}
+
+inline Imq *GetMutableImq(void *buf) {
+  return flatbuffers::GetMutableRoot<Imq>(buf);
 }
 
 inline const char *ImqIdentifier() {
