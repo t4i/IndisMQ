@@ -104,7 +104,7 @@ func send() {
 	c := 5
 	for i := 0; i < c; i++ {
 		time.Sleep(time.Millisecond * 2000)
-
+		sendMessage(imq.Req("", "/what", nil, nil).RawData, webSockets["browser"])
 		imq.Mult(false, "/hello", temp, func(client string, val *imq.Msg) {
 			//fmt.Println("/hommy ", val)
 			sendMessage(val.RawData, webSockets[client])
