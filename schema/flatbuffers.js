@@ -300,6 +300,34 @@ var flatbuffers;
         /**
          * @param {number} value
          */
+        Builder.prototype.writeUint8 = function (value) {
+            this.bb.writeUint8(this.space -= 1, value);
+        };
+        ;
+        /**
+         * @param {number} value
+         */
+        Builder.prototype.writeUint16 = function (value) {
+            this.bb.writeUint16(this.space -= 2, value);
+        };
+        ;
+        /**
+         * @param {number} value
+         */
+        Builder.prototype.writeUint32 = function (value) {
+            this.bb.writeUint32(this.space -= 4, value);
+        };
+        ;
+        /**
+         * @param {flatbuffers.Long} value
+         */
+        Builder.prototype.writeUint64 = function (value) {
+            this.bb.writeUint64(this.space -= 8, value);
+        };
+        ;
+        /**
+         * @param {number} value
+         */
         Builder.prototype.writeFloat32 = function (value) {
             this.bb.writeFloat32(this.space -= 4, value);
         };
@@ -937,6 +965,38 @@ var flatbuffers;
         ByteBuffer.prototype.writeInt64 = function (offset, value) {
             this.writeInt32(offset, value.low);
             this.writeInt32(offset + 4, value.high);
+        };
+        ;
+        /**
+         * @param {number} offset
+         * @param {number} value
+         */
+        ByteBuffer.prototype.writeUint8 = function (offset, value) {
+            this.writeInt8(offset, value);
+        };
+        ;
+        /**
+         * @param {number} offset
+         * @param {number} value
+         */
+        ByteBuffer.prototype.writeUint16 = function (offset, value) {
+            this.writeInt16(offset, value);
+        };
+        ;
+        /**
+         * @param {number} offset
+         * @param {number} value
+         */
+        ByteBuffer.prototype.writeUint32 = function (offset, value) {
+            this.writeInt32(offset, value);
+        };
+        ;
+        /**
+       * @param {number} offset
+       * @param {number} value
+       */
+        ByteBuffer.prototype.writeUint64 = function (offset, value) {
+            this.writeInt64(offset, value);
         };
         ;
         /**
