@@ -56,7 +56,7 @@ func main() {
 	fmt.Println(name)
 	imq.SetName(name)
 	var err error
-	ws, _, err = websocket.DefaultDialer.Dial("ws://localhost:6000/test", nil)
+	ws, _, err = websocket.DefaultDialer.Dial("ws://localhost:7000/test", nil)
 	wg.Add(1)
 	go recieve()
 	if err != nil {
@@ -93,7 +93,7 @@ func main() {
 	//getResponse()
 
 	sendMessage(imq.Sub("/hello", func(m *imq.Msg) *imq.Msg {
-		fmt.Println(string(m.Fields.From()), "says hey ", string(m.Fields.StsMsg()))
+		fmt.Println(string(m.Fields.From()), "says ", string(m.Fields.BodyBytes()))
 		return imq.Success(m, "")
 	}, func(m *imq.Msg) *imq.Msg {
 		if m.Fields.Sts() == schema.StsSUCCESS {

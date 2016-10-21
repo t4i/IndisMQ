@@ -14,7 +14,7 @@ import (
 
 var webSockets = make(map[string]*websocket.Conn)
 var ws []*websocket.Conn
-var upgrader = websocket.Upgrader{} // use default options
+var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }} // use default options
 var sendLock sync.Mutex
 
 func messageRecieved(message *[]byte, w *websocket.Conn) {
@@ -71,7 +71,7 @@ func main() {
 	fmt.Println("server starting")
 	log.Println("starting ws")
 	http.HandleFunc("/test", upgrade)
-	log.Println(http.ListenAndServe(":6000", http.HandlerFunc(upgrade)).Error())
+	log.Println(http.ListenAndServe(":7000", http.HandlerFunc(upgrade)).Error())
 }
 
 func upgrade(w http.ResponseWriter, r *http.Request) {

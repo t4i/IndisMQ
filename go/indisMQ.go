@@ -122,7 +122,11 @@ func DelSubscriber(client string, path string) {
 		if _, present2 = subscribers[path][client]; present2 {
 			delete(subscribers[path], client)
 		}
+		if len(subscribers[path]) < 1 {
+			delete(subscribers, path)
+		}
 	}
+
 	//subLock.Unlock()
 }
 
@@ -132,13 +136,17 @@ func SetHandler(path string, handler Handler) {
 	handlers[path] = handler
 	//handlerLock.Unlock()
 }
-func getHandler(path string) (handler Handler) {
+
+//GetHandler ...
+func GetHandler(path string) (handler Handler) {
 	//handlerLock.RLock()
 	handler = handlers[path]
 	//handlerLock.RUnlock()
 	return
 }
-func delHandler(path string) {
+
+//DelHandler ...
+func DelHandler(path string) {
 	//handlerLock.Lock()
 	delete(handlers, path)
 	//handlerLock.Unlock()
@@ -184,11 +192,7 @@ func Req(to string, dest string, msg []byte, callback Handler) *Msg {
 
 //Rep ...
 func Rep(m *Msg, stsMsg string, msg []byte) *Msg {
-	if m.Fields.MsgType() == schema.MsgTypeCMD {
-		return makeImq(m.Fields.MsgId(), name, m.Fields.From(), m.Fields.Broker(), m.Fields.Path(), m.Fields.MsgType(), schema.StsREP, m.Fields.Cmd(), []byte(stsMsg), -1, msg, nil)
-	}
-	return makeImq(m.Fields.MsgId(), name, m.Fields.From(), m.Fields.Broker(), m.Fields.Path(), m.Fields.MsgType(), schema.StsREP, -1, []byte(stsMsg), -1, msg, nil)
-
+	return makeImq(m.Fields.MsgId(), name, m.Fields.From(), m.Fields.Broker(), m.Fields.Path(), m.Fields.MsgType(), schema.StsREP, m.Fields.Cmd(), []byte(stsMsg), -1, msg, nil)
 }
 
 //Sub ...
@@ -216,8 +220,8 @@ func UnSub(path string, callback Handler) *Msg {
 	if uuidErr != nil {
 		fmt.Printf("error: %v\n", uuidErr)
 	}
-	delHandler(path)
-	m := makeImq(uuid, name, nil, 0, []byte(path), schema.MsgTypeCMD, schema.StsSUCCESS, schema.CmdUNSUB, nil, -1, nil, callback)
+	DelHandler(path)
+	m := makeImq(uuid, name, nil, 0, []byte(path), schema.MsgTypeCMD, schema.StsREQ, schema.CmdUNSUB, nil, -1, nil, callback)
 	if callback != nil {
 		messages[string(uuid)] = m
 	}
@@ -228,10 +232,10 @@ func UnSub(path string, callback Handler) *Msg {
 func BrokerReplay(m *Msg, handler func(string, *Msg), callback Handler) {
 	var r *Msg
 	if m.Fields.MsgType() == schema.MsgTypeMULT {
-		r = makeImq(m.Fields.MsgId(), name, nil, 0, m.Fields.Path(), schema.MsgTypeMULT, schema.StsREQ, -1, nil, -1, m.Fields.BodyBytes(), callback)
+		r = makeImq(m.Fields.MsgId(), name, nil, 0, m.Fields.Path(), schema.MsgTypeMULT, schema.StsREQ, -1, m.Fields.StsMsg(), -1, m.Fields.BodyBytes(), callback)
 		sendMult(r, handler)
 	} else {
-		r = makeImq(m.Fields.MsgId(), name, nil, 0, m.Fields.Path(), schema.MsgTypeQUEUE, schema.StsREQ, -1, nil, -1, m.Fields.BodyBytes(), callback)
+		r = makeImq(m.Fields.MsgId(), name, nil, 0, m.Fields.Path(), schema.MsgTypeQUEUE, schema.StsREQ, -1, m.Fields.StsMsg(), -1, m.Fields.BodyBytes(), callback)
 		sendQueue(r, handler)
 	}
 
@@ -323,24 +327,12 @@ func sendQueue(m *Msg, handler func(string, *Msg)) {
 
 }
 func makeImq(id []byte, from []byte, to []byte, broker byte, path []byte, msgType int8, sts int8, cmd int8, stsMsg []byte, err int8, body []byte, callback Handler) (m *Msg) {
-	//check if already an imqMessage for that id
-	if existing := getImqMessage(string(id)); existing != nil {
-		m = existing
-	} else {
-		m = &Msg{}
-	}
+	m = &Msg{}
 	builder := fb.NewBuilder(0)
 	imqID := builder.CreateByteString(id)
-	var bodyOffset fb.UOffsetT
-	var stsMsgOffset fb.UOffsetT
+	var bodyOffset = builder.CreateByteVector(body)
+	var stsMsgOffset = builder.CreateByteString(stsMsg)
 	pathOffset := builder.CreateByteString(path)
-	if body != nil {
-		bodyOffset = builder.CreateByteVector(body)
-	}
-	if stsMsg != nil {
-		stsMsgOffset = builder.CreateByteString(stsMsg)
-
-	}
 	fromOffset := builder.CreateByteString(from)
 	toOffset := builder.CreateByteString(to)
 	schema.ImqStart(builder)
@@ -415,7 +407,7 @@ func RecieveMessage(data *[]byte) (reply *Msg) {
 	} else if m.Fields.MsgType() == schema.MsgTypeCMD {
 		reply = handleCmd(m)
 	} else if m.Fields.Sts() == schema.StsREQ {
-		if handler := getHandler(string(m.Fields.Path())); handler != nil {
+		if handler := GetHandler(string(m.Fields.Path())); handler != nil {
 			reply = handler(m)
 		}
 	} else { //its a reply

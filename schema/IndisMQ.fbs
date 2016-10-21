@@ -1,4 +1,4 @@
-//flatc -g -c -s IndisMQ.fbs --gen-object-api --scoped-enums
+//flatc -g -c --js --ts IndisMQ.fbs --gen-object-api --scoped-enums
 //Version Major 00 Minor 01
 namespace IndisMQ;
 file_identifier "0001";
