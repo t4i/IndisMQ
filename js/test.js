@@ -6,3 +6,4 @@ var halla = (function () {
 }());
 var hi = new halla();
 console.log(hi.name);
+//# sourceMappingURL=test.js.map
