@@ -55,7 +55,9 @@ With IndisMQ the goal was to make a messaging system on top of a wire protocol, 
 
 ## How does it work
 
-In its current implementation it works simply like this. You call one of the included functions for making the type of message you want, you send it to a recepient who has registered a handler (done like callbacks, rather than reflection) and returns a reply if one exists. Simply leave out the callback, and dont send a reply to have straight messaging w/o RPC style. But you can use the RPC style in a messaging system to ensure delivery and take action if error or no reply is received  
+In its current implementation it works simply like this. You call one of the included functions for making the type of message you want, you send it to a recepient who has registered a handler (done like callbacks, rather than reflection) and returns a reply if one exists.
+
+This works like an async RPC call, and can work through a Broker, or a Relay if the two parties are not directly connected. To have straight messaging w/o RPC simply leave out the callback. But you can use the RPC style in a messaging system to ensure delivery and take action on an error or if no reply is received.  
 
 (examples in GO using github.com/gorilla/websocket)
 
