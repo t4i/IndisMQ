@@ -103,12 +103,12 @@ func fooHandler(m *imq.Msg) *imq.Msg { //called whenever a message is recieved f
 Send a Message on the sender (i.e. Client)
 ```go
 imq.SetName("Client")
-var m=imq.Req("Server", "/foo", []byte("custom message"), callback) //make a request message
+var m=imq.Req("Server", "/foo", []byte("custom message"), fooCallback) //make a request message
 sendMessage(m.Data)
 ...
-func callback(m *imq.Msg) *imq.Msg { //called when the message is replied to
+func fooCallback(m *imq.Msg) *imq.Msg { //called when the message is replied to
 	if m.Fields.Sts == schema.StsSUCCESS {
-		fmt.Println("woohoo made it")
+		fmt.Println("woohoo foo was a success")
 	}
 	return nil
 }
