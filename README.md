@@ -41,7 +41,7 @@ Agreeing on a schema is not a bad thing, it offers any project of size a way to 
 
 JSON is still great for public APIs because it makes it easy to integrate in any project. FBs recognizes this and includes support for to/from JSON in a lot of its libraries and the support is growing.
 
-As a side note FB is currently testing a schemaless version that would allow typing on the fly rather than a compile ILD. We plan to support this fully.
+As a side note FB is currently testing a schemaless version that would allow typing on the fly rather than a compiled IDL. We plan to support this fully.
 
 #### Whats wrong with a Messaging Platform
 
