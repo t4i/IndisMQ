@@ -7,7 +7,7 @@ Agreed, but currently its acting as a design intent document so it needs to be c
 
 ## Why you ask?
 
-We produce a commercial product (Indis aka INDustrial Information System) that provides gateway (among other things) to industrial environments. When looking at existing messaging platforms, we found we ended up writing more code than we thought necessary to make it fit our needs, and were never entirely happy. So we currently use a number of technologies and libraries to see our commercial needs met, including substantial custom code, IndisMQ is an attempt to simplify our internal system and share it with the open source community.
+We produce a commercial product (Indis aka INDustrial Information System) that provides a gateway (among other things) to industrial environments. When looking at existing messaging platforms, we found we ended up writing more code than we thought necessary to make it fit our needs, and were never entirely happy. So we currently use a number of technologies and libraries to see our commercial needs met, including substantial custom code, IndisMQ is an attempt to simplify our internal system and share it with the open source community.
 
 ## Whats different than XXXMQ
 
