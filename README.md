@@ -25,7 +25,7 @@ With a straight wire protocol we always ended up writing the same boilerplate co
 
 #### Why Flatbuffers
 
-  Head over to there site to learn more, but the simplified version is...
+  Head over to there site to learn more (github.com/google/flatbuffers), but the simplified version is...
   Regardless of what wire format you use, there is a parse/unparse or encode/decode step. Doesn't matter if your using JSON or protocol buffers, it takes cpu/memory/time to get it in and out of the wire representation. FB alleviates this by allowing you to access the data as it was sent without the necessary conversion step.
   This is great for our system because we want to be as unobtrusive as possible and let you get to your payload without too much effort. It does have a couple trad-offs, like everything, but they are reasonable to get the performance you can achieve.
   
