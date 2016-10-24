@@ -215,6 +215,7 @@ Currently no OS restrictions (outside of language support) testing done on Linux
 
 ###Planned Features (Beyond V1)
 - [ ] Reflection?-Not convinced one way or other
+- [ ] Partial and Wildcard path matching
 - [ ] Code generator for FB RPC types
 - [ ] Other languages?
 
