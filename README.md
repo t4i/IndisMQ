@@ -201,15 +201,22 @@ Currently no OS restrictions (outside of language support) testing done on Linux
 - [ ] Thread Safety
 - [ ] Timeout Methods for messages-not automatic, must be invoked by user to avoid having a additional event loop 
 - [ ] FB Schemaless (depends on fb release)
+- [ ] Documentation and commented code
+- [ ] Tests
+- [ ] Usage Examples
 
 ###Planned Features (Beyond V1)
 - [ ] Reflection?-Not convinced one way or other
 - [ ] Code generator for FB RPC types
+- [ ] Other languages?
 
 ##Unplanned Features (not intended unless a compelling argument can be made)
+
 ###Automatic Timeout Handling
+
 Because implementing a timeout handler generally involves threading and event loops it uneccessarily complicates the library. By providing a funciton that the user can call, we will allow them to determine how best to handle timeouts or not at all.
 ###Built in Communication Protocols
+
 It is the users choice to wire up and use whatever comm library they choose (one of the fundamental design concepts), however it may be worth while to provide helpers or shims against common communication libraries to make it easier to integrate
-- 
+
 
