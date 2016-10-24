@@ -227,4 +227,6 @@ Because implementing a timeout handler generally involves threading and event lo
 
 It is the users choice to wire up and use whatever comm library they choose (one of the fundamental design concepts), however it may be worth while to provide helpers or shims against common communication libraries to make it easier to integrate
 
+###Contributing
 
+Feel free to leave issues (even philisophical or design ones) and we'll work through them with you. Pull requests are welcome but will require a contibutor agreement.
