@@ -59,6 +59,8 @@ In its current implementation it works simply like this. You call one of the inc
 
 This works like an async RPC call, and can work through a Broker, or a Relay if the two parties are not directly connected. To have straight messaging w/o RPC simply leave out the callback. But you can use the RPC style in a messaging system to ensure delivery and take action on an error or if no reply is received.  
 
+Also notice that because we have no 
+
 (examples in GO using github.com/gorilla/websocket)
 
 ###Do Once
