@@ -31,7 +31,9 @@ With a straight wire protocol we always ended up writing the same boilerplate co
   
 #### Why not JSON
 
-JSON can be a lot of fun to program with, javascript engines such as Google's v8 or QT's QML engine are great at parsing them efficiently, so why the aversion. Experience, both bad and good. Outside of javascript though performance is not always great, and when dealing in quantities of messages the time to convert to native types is non-trivial. 
+JSON can be a lot of fun to program with, javascript engines such as Google's v8 or QT's QML engine are great at parsing them efficiently, so why the aversion. Experience, both bad and good. 
+
+Outside of javascript performance is not always great, and when dealing in quantities of messages the time to convert and amount of copying/instantiating required to native types is non-trivial. 
 
 Type safety is a huge benifit to any project that needs to be reliable or is intended to grow. Anytime you have to do a typeof statement, you are rolling your own type safety, and at a cost. Whether you like to admit it Javascript (in its current form) can't exist without a runtime environment, generally c++/c. And the 'typelessness' (word?) is really an abstraction not magic, and generally incurs some form of reflection hack on top of c++ to make it work behind the scenes.
 
