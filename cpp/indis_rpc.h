@@ -3,12 +3,15 @@
 
 #define V_MAJOR 0
 #define V_MINOR 1
-#include "IndisMQ_Generated.h"
-#include "flatbuffers/flatbuffers.h"
+#include "../schema/IndisMQ_Generated.h"
+#include "../schema/flatbuffers/flatbuffers.h"
 #include <unordered_map>
 #include <map>
 #include <mutex>
 #include <time.h>
+#ifndef MQ_EXPORT
+#define MQ_EXPORT
+#endif
 #ifdef QT_CORE_LIB
 #include <QDebug>
 #include <QByteArray>
@@ -69,6 +72,10 @@ private:
 };
 
 std::string name="unamed";
+MQ_EXPORT inline void setName(std::string newName){
+    name=newName;
+}
+
 std::unordered_map<std::string,Handler> handlers;
 Handler brokerHandler;
 Handler relayHandler;
