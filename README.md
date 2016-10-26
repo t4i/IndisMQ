@@ -206,6 +206,8 @@ Currently no OS restrictions (outside of language support) testing done on Linux
 - [x] Status Messages incl Error, Success
 - [x] Command Message incl Subscribe, UnSubscribe, Sync
 - [ ] Multi-Part messages, or Stream Messages
+- [ ] Request Verbs (like http, GET/PUT/etc)
+- [ ] Success statuc messages (like http, 401 etc)
 - [ ] Thread Safety
 - [ ] Timeout Methods for messages-not automatic, must be invoked by user to avoid having a additional event loop 
 - [ ] FB Schemaless (depends on fb release)
