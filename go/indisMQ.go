@@ -18,7 +18,7 @@ type Handler func(m *Msg) *Msg
 
 //Msg ... imq.Msg.rawData imq.Msg.
 type Msg struct {
-	RawData  *[]byte
+	Data     *[]byte
 	Fields   *schema.Imq
 	Callback Handler
 }

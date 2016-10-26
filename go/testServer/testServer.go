@@ -20,17 +20,13 @@ var sendLock sync.Mutex
 func messageRecieved(message *[]byte, w *websocket.Conn) {
 	m := imq.RecieveMessage(message)
 	if m != nil && m.RawData != nil {
-		// fmt.Println("sending ", m)
-		// fmt.Println(schema.EnumNamesMsgType[int(m.MsgType)], " ", schema.EnumNamesSts[int(m.Sts)], " ", schema.EnumNamesCmd[int(m.Cmd)])
-		sendMessage(m.RawData, w)
+		sendMessage(m.RawData)
 	}
 
 }
-func sendMessage(data *[]byte, w *websocket.Conn) {
+func sendMessage(data *[]byte) {
 	if data != nil {
-		sendLock.Lock()
-		er := w.WriteMessage(2, *data)
-		sendLock.Unlock()
+		er := ws.WriteMessage(2, *data)
 		if er != nil {
 			log.Println(er)
 		}
@@ -72,6 +68,16 @@ func main() {
 	log.Println("starting ws")
 	http.HandleFunc("/test", upgrade)
 	log.Println(http.ListenAndServe(":7000", http.HandlerFunc(upgrade)).Error())
+
+	var m=imq.Req("Server1", "/foo", []byte("custom message"), callback)
+	sendMessage(m.Data)
+}
+
+func callback(m *imq.Msg) *imq.Msg {
+	if m.Fields.Sts == schema.StsSUCCESS {
+		fmt.Println("woohoo made it")
+	}
+	return nil
 }
 
 func upgrade(w http.ResponseWriter, r *http.Request) {
@@ -112,12 +118,12 @@ func send() {
 			fmt.Println("got response")
 			return nil
 		})
+
 	}
 
 }
 func receive(w *websocket.Conn) {
 	defer w.Close()
-	go send()
 	for {
 		_, message, err := w.ReadMessage()
 		if err != nil {
@@ -127,3 +133,4 @@ func receive(w *websocket.Conn) {
 
 	}
 }
+

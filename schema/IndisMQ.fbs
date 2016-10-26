@@ -2,9 +2,9 @@
 //Version Major 00 Minor 01
 namespace IndisMQ;
 file_identifier "0001";
-enum MsgType:byte{NONE,PEER,MULT, QUEUE, CMD}
+enum MsgType:byte{NONE,SINGLE,CAST,QUEUE,CMD}
 enum Cmd:byte{NONE,SUB, UNSUB, SYN}
-enum Sts:byte{NONE,ERROR,REQ,REP,CANCEL, SUCCESS}
+enum Sts:byte{NONE,ERROR,REQ,REP,SEQ,CANCEL, SUCCESS}
 enum Err:byte{NONE,NO_HANDLER, INVALID, REMOTE, TIMEOUT}
 struct Ver{
     Major:byte;
