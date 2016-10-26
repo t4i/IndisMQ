@@ -9,9 +9,6 @@
 #include <map>
 #include <mutex>
 #include <time.h>
-#ifndef MQ_EXPORT
-#define MQ_EXPORT
-#endif
 #ifdef QT_CORE_LIB
 #include <QDebug>
 #include <QByteArray>
@@ -72,7 +69,7 @@ private:
 };
 
 std::string name="unamed";
-MQ_EXPORT inline void setName(std::string newName){
+void setName(std::string newName){
     name=newName;
 }
 
@@ -187,7 +184,7 @@ std::unique_ptr<Msg> success (std::shared_ptr<Msg> &m,std::string stsMsg){
     return makeImq(m->fields->MsgId()->str(),name,m->fields->From()->str(),m->fields->Broker(),m->fields->Path()->str(),
                    m->fields->MsgType(),schema::Sts::SUCCESS,m->fields->Cmd(),stsMsg,schema::Err::NONE,nullptr,nullptr);
 }
-std::shared_ptr<Msg>& req(std::string to, std::string dest,std::string stsMsg, std::unique_ptr<std::vector<uint8_t>> body,Handler callback){
+std::shared_ptr<Msg> req(std::string to, std::string dest,std::string stsMsg, std::unique_ptr<std::vector<uint8_t>> body,Handler callback){
     std::string uid=newUid();
     auto m=std::shared_ptr<Msg>(std::move(makeImq(uid,name,to,false,dest,schema::MsgType::PEER,schema::Sts::REQ,
                                                   schema::Cmd::NONE,"",schema::Err::NONE,std::move(body),callback)));

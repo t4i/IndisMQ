@@ -138,24 +138,24 @@ struct Imq FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   flatbuffers::String *mutable_To() { return GetPointer<flatbuffers::String *>(VT_TO); }
   bool Broker() const { return GetField<uint8_t>(VT_BROKER, 0) != 0; }
   bool mutate_Broker(bool _Broker) { return SetField(VT_BROKER, static_cast<uint8_t>(_Broker)); }
-  Cmd Cmd() const { return static_cast<Cmd>(GetField<int8_t>(VT_CMD, 0)); }
-  bool mutate_Cmd(Cmd _Cmd) { return SetField(VT_CMD, static_cast<int8_t>(_Cmd)); }
+  IndisMQ::Cmd Cmd() const { return static_cast<IndisMQ::Cmd>(GetField<int8_t>(VT_CMD, 0)); }
+  bool mutate_Cmd(IndisMQ::Cmd _Cmd) { return SetField(VT_CMD, static_cast<int8_t>(_Cmd)); }
   const flatbuffers::String *MsgId() const { return GetPointer<const flatbuffers::String *>(VT_MSGID); }
   flatbuffers::String *mutable_MsgId() { return GetPointer<flatbuffers::String *>(VT_MSGID); }
-  MsgType MsgType() const { return static_cast<MsgType>(GetField<int8_t>(VT_MSGTYPE, 0)); }
-  bool mutate_MsgType(MsgType _MsgType) { return SetField(VT_MSGTYPE, static_cast<int8_t>(_MsgType)); }
-  Sts Sts() const { return static_cast<Sts>(GetField<int8_t>(VT_STS, 0)); }
-  bool mutate_Sts(Sts _Sts) { return SetField(VT_STS, static_cast<int8_t>(_Sts)); }
+  IndisMQ::MsgType MsgType() const { return static_cast<IndisMQ::MsgType>(GetField<int8_t>(VT_MSGTYPE, 0)); }
+  bool mutate_MsgType(IndisMQ::MsgType _MsgType) { return SetField(VT_MSGTYPE, static_cast<int8_t>(_MsgType)); }
+  IndisMQ::Sts Sts() const { return static_cast<IndisMQ::Sts>(GetField<int8_t>(VT_STS, 0)); }
+  bool mutate_Sts(IndisMQ::Sts _Sts) { return SetField(VT_STS, static_cast<int8_t>(_Sts)); }
   const flatbuffers::String *Path() const { return GetPointer<const flatbuffers::String *>(VT_PATH); }
   flatbuffers::String *mutable_Path() { return GetPointer<flatbuffers::String *>(VT_PATH); }
-  Err Err() const { return static_cast<Err>(GetField<int8_t>(VT_ERR, 0)); }
-  bool mutate_Err(Err _Err) { return SetField(VT_ERR, static_cast<int8_t>(_Err)); }
+  IndisMQ::Err Err() const { return static_cast<IndisMQ::Err>(GetField<int8_t>(VT_ERR, 0)); }
+  bool mutate_Err(IndisMQ::Err _Err) { return SetField(VT_ERR, static_cast<int8_t>(_Err)); }
   const flatbuffers::String *StsMsg() const { return GetPointer<const flatbuffers::String *>(VT_STSMSG); }
   flatbuffers::String *mutable_StsMsg() { return GetPointer<flatbuffers::String *>(VT_STSMSG); }
   bool Callback() const { return GetField<uint8_t>(VT_CALLBACK, 0) != 0; }
   bool mutate_Callback(bool _Callback) { return SetField(VT_CALLBACK, static_cast<uint8_t>(_Callback)); }
-  const Ver *Ver() const { return GetStruct<const Ver *>(VT_VER); }
-  Ver *mutable_Ver() { return GetStruct<Ver *>(VT_VER); }
+  const IndisMQ::Ver *Ver() const { return GetStruct<const IndisMQ::Ver *>(VT_VER); }
+  IndisMQ::Ver *mutable_Ver() { return GetStruct<IndisMQ::Ver *>(VT_VER); }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<flatbuffers::uoffset_t>(verifier, VT_BODY) &&
@@ -176,7 +176,7 @@ struct Imq FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<flatbuffers::uoffset_t>(verifier, VT_STSMSG) &&
            verifier.Verify(StsMsg()) &&
            VerifyField<uint8_t>(verifier, VT_CALLBACK) &&
-           VerifyField<Ver>(verifier, VT_VER) &&
+           VerifyField<IndisMQ::Ver>(verifier, VT_VER) &&
            verifier.EndTable();
   }
   ImqT *UnPack(const flatbuffers::resolver_function_t *resolver = nullptr) const;
@@ -271,7 +271,7 @@ inline ImqT *Imq::UnPack(const flatbuffers::resolver_function_t *resolver) const
   { auto _e = Err(); _o->Err = _e; };
   { auto _e = StsMsg(); if (_e) _o->StsMsg = _e->str(); };
   { auto _e = Callback(); _o->Callback = _e; };
-  { auto _e = Ver(); if (_e) _o->Ver = std::unique_ptr<Ver>(new Ver(*_e)); };
+  { auto _e = Ver(); if (_e) _o->Ver = std::unique_ptr<IndisMQ::Ver>(new IndisMQ::Ver(*_e)); };
   return _o;
 }
 
