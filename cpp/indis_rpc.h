@@ -53,17 +53,17 @@ struct Msg{
         fbData=std::move(_data);
         data=QByteArray::fromRawData(reinterpret_cast<const char *>(fbData.get()),size);
     }
-
-private:
-    flatbuffers::unique_ptr_t fbData;
 #else
+    uint8_t* data;
+    int dataSize;
     void setFbData(flatbuffers::unique_ptr_t _data, int size){
-        data=std::move(_data);
+        fbData=std::move(_data);
+        data=fbData.get();
         datasize=size;
     }
-    flatbuffers::unique_ptr_t data;
-    int dataSize;
 #endif
+private:
+    flatbuffers::unique_ptr_t fbData;
 
     //    to convert fb vector to std vector new std::vector<uint8_t>(fields->Body()->data(),fields->Body()->data()+fields->Body()->size())
 };
