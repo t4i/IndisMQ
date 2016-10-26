@@ -347,6 +347,7 @@ struct IDLOptions {
   bool generate_name_strings;
   bool escape_proto_identifiers;
   bool generate_object_based_api;
+  std::string cpp_object_api_pointer_type;
   bool union_value_namespacing;
   bool allow_non_utf8;
 
@@ -370,6 +371,7 @@ struct IDLOptions {
       generate_name_strings(false),
       escape_proto_identifiers(false),
       generate_object_based_api(false),
+      cpp_object_api_pointer_type("std::unique_ptr"),
       union_value_namespacing(true),
       allow_non_utf8(false),
       lang(IDLOptions::kJava) {}
@@ -450,6 +452,8 @@ class Parser : public ParserState {
     known_attributes_["csharp_partial"] = true;
     known_attributes_["streaming"] = true;
     known_attributes_["idempotent"] = true;
+    known_attributes_["cpp_type"] = true;
+    known_attributes_["cpp_ptr_type"] = true;
   }
 
   ~Parser() {
@@ -627,6 +631,13 @@ extern bool GenerateJS(const Parser &parser,
                        const std::string &path,
                        const std::string &file_name);
 
+// Generate TypeScript code from the definitions in the Parser object.
+// See idl_gen_js.
+extern std::string GenerateTS(const Parser &parser);
+extern bool GenerateTS(const Parser &parser,
+	                   const std::string &path,
+	                   const std::string &file_name);
+
 // Generate Go files from the definitions in the Parser object.
 // See idl_gen_go.cpp.
 extern bool GenerateGo(const Parser &parser,
@@ -676,6 +687,11 @@ extern bool GenerateFBS(const Parser &parser,
 extern std::string JSMakeRule(const Parser &parser,
                               const std::string &path,
                               const std::string &file_name);
+// Generate a make rule for the generated TypeScript code.
+// See idl_gen_js.cpp.
+extern std::string TSMakeRule(const Parser &parser,
+	                          const std::string &path,
+	                          const std::string &file_name);
 
 // Generate a make rule for the generated C++ header.
 // See idl_gen_cpp.cpp.

@@ -3,8 +3,8 @@
 
 #define V_MAJOR 0
 #define V_MINOR 1
-#include "IndisMQ_Generated.h"
-#include "flatbuffers/flatbuffers.h"
+#include "../schema/IndisMQ_Generated.h"
+#include "../schema/flatbuffers/flatbuffers.h"
 #include <unordered_map>
 #include <map>
 #include <mutex>
@@ -53,22 +53,26 @@ struct Msg{
         fbData=std::move(_data);
         data=QByteArray::fromRawData(reinterpret_cast<const char *>(fbData.get()),size);
     }
-
-private:
-    flatbuffers::unique_ptr_t fbData;
 #else
+    uint8_t* data;
+    int dataSize;
     void setFbData(flatbuffers::unique_ptr_t _data, int size){
-        data=std::move(_data);
+        fbData=std::move(_data);
+        data=fbData.get();
         datasize=size;
     }
-    flatbuffers::unique_ptr_t data;
-    int dataSize;
 #endif
+private:
+    flatbuffers::unique_ptr_t fbData;
 
     //    to convert fb vector to std vector new std::vector<uint8_t>(fields->Body()->data(),fields->Body()->data()+fields->Body()->size())
 };
 
 std::string name="unamed";
+void setName(std::string newName){
+    name=newName;
+}
+
 std::unordered_map<std::string,Handler> handlers;
 Handler brokerHandler;
 Handler relayHandler;
@@ -180,7 +184,7 @@ std::unique_ptr<Msg> success (std::shared_ptr<Msg> &m,std::string stsMsg){
     return makeImq(m->fields->MsgId()->str(),name,m->fields->From()->str(),m->fields->Broker(),m->fields->Path()->str(),
                    m->fields->MsgType(),schema::Sts::SUCCESS,m->fields->Cmd(),stsMsg,schema::Err::NONE,nullptr,nullptr);
 }
-std::shared_ptr<Msg>& req(std::string to, std::string dest,std::string stsMsg, std::unique_ptr<std::vector<uint8_t>> body,Handler callback){
+std::shared_ptr<Msg> req(std::string to, std::string dest,std::string stsMsg, std::unique_ptr<std::vector<uint8_t>> body,Handler callback){
     std::string uid=newUid();
     auto m=std::shared_ptr<Msg>(std::move(makeImq(uid,name,to,false,dest,schema::MsgType::PEER,schema::Sts::REQ,
                                                   schema::Cmd::NONE,"",schema::Err::NONE,std::move(body),callback)));
