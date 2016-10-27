@@ -2,9 +2,42 @@
 //Version Major 00 Minor 01
 namespace IndisMQ;
 file_identifier "0001";
+/* these are the types of messages that can be sent
+SINGLE: like an RPC has a single intended recepient aka peer
+CAST: intended for all active subscribers
+QUEUE: intended for one of active subscribers
+CMD: Internal Command send to peer
+*/
 enum MsgType:byte{NONE,SINGLE,CAST,QUEUE,CMD}
+/* these give additional (optional) information for the receiver similar to http verbs
+Actual meaning is program specific, this is only intent
+GET: retrieve a value
+SET: Set a value, if exists replace
+NEW: Set if not exists, error if exists
+APPEND: Set a value, if exists update
+REPLACE: Replace a value entirely
+UPDATE: Update value with included properties
+DELETE: Delete a value
+*/
+enum Action:byte{NONE,GET,SET,NEW,APPEND, REPLACE,UPDATE,DELETE}
+/*these are internal command codes
+SUB: request to subscribe to a path, will be processed automatically and return if a callback is present
+UNSUB: request to be unsubscribed to a path, processed automaticlaly and return success if a callback is present
+SYN: request Syncronization, receiver replies with an ACK that contains client info
+PATHS (future): Returns list of paths receiver has handlers and subscribers for
+*/
 enum Cmd:byte{NONE,SUB, UNSUB, SYN}
-enum Sts:byte{NONE,ERROR,REQ,REP,SEQ,CANCEL, SUCCESS}
+/*these also function like http status codes 
+ERROR: Contains an Error Code, 
+REQ: Message Contains a Request, 
+REP: Message contains a Reply, 
+SEQ: Message is part of a Sequence, or Multi Part Messaage
+CANCEL: Cancel the referenced Message
+SUCCESS: Indicates Sucess in a Reply
+ACK: Indicates Acknowledgement (not success) of a message
+*/
+enum Sts:byte{NONE,ERROR,REQ,REP,SEQ,CANCEL, SUCCESS, ACK} 
+
 enum Err:byte{NONE,NO_HANDLER, INVALID, REMOTE, TIMEOUT}
 struct Ver{
     Major:byte;
