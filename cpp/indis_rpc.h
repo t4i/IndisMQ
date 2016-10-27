@@ -202,12 +202,12 @@ inline std::shared_ptr<iMsg> req(std::string to, std::string dest,std::string st
     }
     return m;
 }
-inline std::unique_ptr<iMsg>& rep (std::shared_ptr<iMsg> &m,std::string stsMsg,std::unique_ptr<std::vector<uint8_t>> body){
+inline std::unique_ptr<iMsg> rep (std::shared_ptr<iMsg> &m,std::string stsMsg,std::unique_ptr<std::vector<uint8_t>> body){
 
     return makeImq(m->fields->MsgId()->str(),name,m->fields->From()->str(),m->fields->Broker(),m->fields->Path()->str(),
                    m->fields->MsgType(),schema::Sts::SUCCESS,m->fields->Cmd(),stsMsg,schema::Err::NONE,std::move(body),nullptr);
 }
-inline std::shared_ptr<iMsg>& sub(std::string path,Handler handler,Handler callback){
+inline std::shared_ptr<iMsg> sub(std::string path,Handler handler,Handler callback){
     std::string uid=newUid();
     if(handler){
         setHandler(path,handler);
@@ -220,7 +220,7 @@ inline std::shared_ptr<iMsg>& sub(std::string path,Handler handler,Handler callb
     return m;
 }
 
-inline std::shared_ptr<iMsg>& unSub(std::string path, Handler callback){
+inline std::shared_ptr<iMsg> unSub(std::string path, Handler callback){
     std::string uid=newUid();
     handlers.erase(path);
     auto m=std::shared_ptr<iMsg>(std::move(makeImq(uid,name,"",false,"",schema::MsgType::CMD,
@@ -274,7 +274,7 @@ inline void brokerReplay(iMsg *m,void(*f)(std::string, std::shared_ptr<iMsg>& m)
 }
 
 
-inline std::shared_ptr<iMsg>& Mult(bool broker, std::string path, std::unique_ptr<std::vector<uint8_t>> body,
+inline std::shared_ptr<iMsg> Mult(bool broker, std::string path, std::unique_ptr<std::vector<uint8_t>> body,
                            void(*f)(std::string, std::shared_ptr<iMsg>& m),Handler callback ){
     std::string uid=newUid();
     auto m=std::shared_ptr<iMsg>(std::move(makeImq(uid,name,"",broker,path,schema::MsgType::MULT,schema::Sts::REQ,
@@ -292,7 +292,7 @@ inline std::shared_ptr<iMsg>& Mult(bool broker, std::string path, std::unique_pt
 
 
 
-inline std::shared_ptr<iMsg>& Queue(bool broker, std::string path, std::unique_ptr<std::vector<uint8_t>> body,
+inline std::shared_ptr<iMsg> Queue(bool broker, std::string path, std::unique_ptr<std::vector<uint8_t>> body,
                             void(*f)(std::string, std::shared_ptr<iMsg>& m),Handler callback){
     std::string uid=newUid();
     auto m=std::shared_ptr<iMsg>(std::move(makeImq(uid,name,"",broker,path,schema::MsgType::QUEUE,schema::Sts::REQ,

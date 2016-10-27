@@ -40,6 +40,7 @@ void onConnected(){
             qDebug()<<"Successfully subscribed on "<<m->fields->From()->c_str();
             return nullptr;
         }
+        return nullptr;
     });
     sender(s->data);
 
