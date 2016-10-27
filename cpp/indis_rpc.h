@@ -46,12 +46,14 @@ std::string str(length,0);
 std::generate_n( str.begin(), length, randchar );
 return str;
 }
-template<typename T>
+
+template<class T>
 struct Msg{
     Handler callback;
     const T* fields;
 #ifdef QT_CORE_LIB
     QByteArray data;
+    Msg(){}
     Msg(flatbuffers::unique_ptr_t _data,int size){
         fbData=std::move(_data);
         fields=flatbuffers::GetRoot<T>(_data.get());
