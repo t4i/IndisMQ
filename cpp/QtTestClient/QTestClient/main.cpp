@@ -7,12 +7,12 @@
 std::string temp1="hello";
 std::vector<uint8_t> temp1V(temp1.begin(),temp1.end());
 QByteArray test("hey buddy");
-std::shared_ptr<imq::Msg> handler(std::shared_ptr<imq::Msg> &m){
-    std::shared_ptr<imq::Msg> r(imq::success(m,NULL));
+std::shared_ptr<imq::iMsg> handler(std::shared_ptr<imq::iMsg> &m){
+    std::shared_ptr<imq::iMsg> r(imq::success(m,NULL));
     return r;
 }
 
-std::shared_ptr<imq::Msg> callback(std::shared_ptr<imq::Msg> &m){
+std::shared_ptr<imq::iMsg> callback(std::shared_ptr<imq::iMsg> &m){
     qDebug()<<"callback";
     return NULL;
 }
