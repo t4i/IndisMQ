@@ -91,7 +91,7 @@ static Handler relayHandler;
 static std::unordered_map<std::string,std::shared_ptr<iMsg>> messages;
 static std::unordered_map<std::string,std::unordered_map<std::string,bool>> subscribers;
 std::unique_ptr<iMsg> makeImq(std::string id, std::string from, std::string to, bool broker, std::string path,
-                             schema::MsgType msgType, schema::Sts sts, schema::Cmd cmd, std::string stsMsg, schema::Err err, std::unique_ptr<std::vector<uint8_t>> body,Handler callback);
+                             schema::MsgType msgType, schema::Sts sts, schema::Cmd cmd, std::string stsMsg, schema::Err err, BUFFER_TYPE body,Handler callback);
 static bool debug=false;
 
 inline void setBrokerHandler(Handler handler){
@@ -193,7 +193,7 @@ inline std::unique_ptr<iMsg> success (std::shared_ptr<iMsg> &m,std::string stsMs
     return makeImq(m->fields->MsgId()->str(),name,m->fields->From()->str(),m->fields->Broker(),m->fields->Path()->str(),
                    m->fields->MsgType(),schema::Sts::SUCCESS,m->fields->Cmd(),stsMsg,schema::Err::NONE,nullptr,nullptr);
 }
-inline std::shared_ptr<iMsg> req(std::string to, std::string dest,std::string stsMsg, std::unique_ptr<std::vector<uint8_t>> body,Handler callback){
+inline std::shared_ptr<iMsg> req(std::string to, std::string dest,std::string stsMsg, BUFFER_TYPE body,Handler callback){
     std::string uid=newUid();
     auto m=std::shared_ptr<iMsg>(std::move(makeImq(uid,name,to,false,dest,schema::MsgType::PEER,schema::Sts::REQ,
                                                   schema::Cmd::NONE,"",schema::Err::NONE,std::move(body),callback)));
@@ -202,7 +202,7 @@ inline std::shared_ptr<iMsg> req(std::string to, std::string dest,std::string st
     }
     return m;
 }
-inline std::unique_ptr<iMsg> rep (std::shared_ptr<iMsg> &m,std::string stsMsg,std::unique_ptr<std::vector<uint8_t>> body){
+inline std::unique_ptr<iMsg> rep (std::shared_ptr<iMsg> &m,std::string stsMsg,BUFFER_TYPE body){
 
     return makeImq(m->fields->MsgId()->str(),name,m->fields->From()->str(),m->fields->Broker(),m->fields->Path()->str(),
                    m->fields->MsgType(),schema::Sts::SUCCESS,m->fields->Cmd(),stsMsg,schema::Err::NONE,std::move(body),nullptr);
@@ -260,7 +260,11 @@ inline void sendQueue(std::shared_ptr<iMsg> &m,void(*f)(std::string client,std::
 }
 inline void brokerReplay(iMsg *m,void(*f)(std::string, std::shared_ptr<iMsg>& m),Handler callback){
 
+#ifdef QT_CORE_LIB
+    auto body=QByteArray::fromRawData(reinterpret_cast<const char*>(m->fields->Body()->data()),m->fields->Body()->size());
+#else
     std::unique_ptr<std::vector<uint8_t>> body(new std::vector<uint8_t>(m->fields->Body()->data(),m->fields->Body()->data()+m->fields->Body()->size()));
+#endif
     auto r=std::shared_ptr<iMsg>(std::move(makeImq(m->fields->MsgId()->str(),m->fields->To()->str(),m->fields->From()->str(),false,m->fields->Path()->str(),
                                                   m->fields->MsgType(),m->fields->Sts(),m->fields->Cmd(),m->fields->StsMsg()->str(),m->fields->Err(),std::move(body),callback)));
     if( m->fields->MsgType()==schema::MsgType::MULT){
@@ -274,7 +278,7 @@ inline void brokerReplay(iMsg *m,void(*f)(std::string, std::shared_ptr<iMsg>& m)
 }
 
 
-inline std::shared_ptr<iMsg> Mult(bool broker, std::string path, std::unique_ptr<std::vector<uint8_t>> body,
+inline std::shared_ptr<iMsg> Mult(bool broker, std::string path, BUFFER_TYPE body,
                            void(*f)(std::string, std::shared_ptr<iMsg>& m),Handler callback ){
     std::string uid=newUid();
     auto m=std::shared_ptr<iMsg>(std::move(makeImq(uid,name,"",broker,path,schema::MsgType::MULT,schema::Sts::REQ,
@@ -292,7 +296,7 @@ inline std::shared_ptr<iMsg> Mult(bool broker, std::string path, std::unique_ptr
 
 
 
-inline std::shared_ptr<iMsg> Queue(bool broker, std::string path, std::unique_ptr<std::vector<uint8_t>> body,
+inline std::shared_ptr<iMsg> Queue(bool broker, std::string path, BUFFER_TYPE body,
                             void(*f)(std::string, std::shared_ptr<iMsg>& m),Handler callback){
     std::string uid=newUid();
     auto m=std::shared_ptr<iMsg>(std::move(makeImq(uid,name,"",broker,path,schema::MsgType::QUEUE,schema::Sts::REQ,
@@ -310,7 +314,7 @@ inline std::shared_ptr<iMsg> Queue(bool broker, std::string path, std::unique_pt
 
 
 inline std::unique_ptr<iMsg> makeImq(std::string id, std::string from, std::string to, bool broker, std::string path,
-                             schema::MsgType msgType, schema::Sts sts, schema::Cmd cmd, std::string stsMsg, schema::Err err, std::unique_ptr<std::vector<uint8_t>> body,Handler callback){
+                             schema::MsgType msgType, schema::Sts sts, schema::Cmd cmd, std::string stsMsg, schema::Err err, BUFFER_TYPE body,Handler callback){
 
 
     flatbuffers::FlatBufferBuilder builder;
@@ -319,8 +323,15 @@ inline std::unique_ptr<iMsg> makeImq(std::string id, std::string from, std::stri
     auto toOffset=builder.CreateString(to);
     auto pathOffset=builder.CreateString(path);
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> dataOffset;
+
+#ifdef QT_CORE_LIB
+
+    if(!body.isEmpty()){
+        dataOffset=builder.CreateVector(reinterpret_cast<uint8_t*>(body.data()),body.size());
+#else
     if(body){
         dataOffset=builder.CreateVector(*body);
+#endif
     }
     auto message=builder.CreateString(stsMsg);
     schema::ImqBuilder imqBuilder(builder);
@@ -337,7 +348,11 @@ inline std::unique_ptr<iMsg> makeImq(std::string id, std::string from, std::stri
         imqBuilder.add_StsMsg(message);
     }
     imqBuilder.add_Err(err);
+    #ifdef QT_CORE_LIB
+    if(!body.isEmpty()){
+#else
     if(body){
+#endif
 
         imqBuilder.add_Body(dataOffset);
     }
