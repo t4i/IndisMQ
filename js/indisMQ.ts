@@ -1,4 +1,4 @@
-import {flatbuffers as fb} from "../schema/flatbuffers"
+import {flatbuffers as fb} from "../../flatbuffers"
 import {IndisMQ as schema} from "../schema/IndisMQ_generated"
 
 export module imq{
