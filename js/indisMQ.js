@@ -1,5 +1,5 @@
 "use strict";
-var flatbuffers_1 = require("../schema/flatbuffers");
+var flatbuffers_1 = require("../../flatbuffers/js/tsTest/flatbuffers");
 var IndisMQ_generated_1 = require("../schema/IndisMQ_generated");
 var imq;
 (function (imq_1) {
