@@ -4,7 +4,7 @@
 #define V_MAJOR 0
 #define V_MINOR 1
 #include "../schema/IndisMQ_Generated.h"
-#include "../third_party/flatbuffers/include/flatbuffers/flatbuffers.h"
+#include "../../flatbuffers/include/flatbuffers/flatbuffers.h"
 #include <unordered_map>
 #include <map>
 #include <mutex>
