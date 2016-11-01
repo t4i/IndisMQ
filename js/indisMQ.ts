@@ -2,22 +2,24 @@ import {flatbuffers as fb} from "../../flatbuffers/js/tsTest/flatbuffers"
 import {IndisMQ as schema} from "../schema/IndisMQ_generated"
 
 export module imq{
-export class Msg {
+export type iMsg=Msg<schema.Imq>
+export class Msg<T> {
     data: Uint8Array
-    fields: schema.Imq
+    fields: T
     callback: Handler
 }
 
 export interface Handler {
-    (m: Msg): Msg;
+    (m: iMsg): iMsg;
 }
 
 var handlers: { [key: string]: Handler } = {}
-var messages: { [key: string]: Msg } = {}
+var messages: { [key: string]: iMsg } = {}
 var subscribers: { [key: string]: { [key: string]: boolean } } = {}
 var brokerHandler: Handler
 var relayHandler: Handler
-var name = "unnamed"
+export var onReady:()=>any;
+export var name = "unnamed"
 
 export function setBrokerHandler(handler: Handler) {
     brokerHandler = handler
@@ -26,17 +28,17 @@ export function setRelayHandler(handler: Handler) {
     relayHandler = handler
 }
 
-function parseMsg(data: Uint8Array): Msg {
+function parseMsg(data: Uint8Array): iMsg {
     if (!data) {
         return null
     }
-    var m = new Msg()
+    var m = new Msg<schema.Imq>()
     m.data = data
     m.fields = schema.Imq.getRootAsImq(new fb.ByteBuffer(data))
     return m
 }
 
-function getImqMessage(id: string): Msg {
+function getImqMessage(id: string): iMsg {
     if (id in messages) {
         return messages[id]
     }
@@ -95,7 +97,7 @@ function delHandler(path: string) {
 //     return status[id].callback
 // }
 
-export function syn(stsMsg: string, callback: Handler): Msg {
+export function syn(stsMsg: string, callback: Handler): iMsg {
     var uid = newUID()
     var m = makeImq(uid, name, "", false, "", schema.MsgType.CMD, schema.Sts.REQ, schema.Err.NONE, stsMsg, schema.Cmd.SYN, null, callback)
     if (callback) {
@@ -104,15 +106,15 @@ export function syn(stsMsg: string, callback: Handler): Msg {
     return m
 }
 
-export function err(m: Msg, stsMsg: string, err: number): Msg {
+export function err(m: iMsg, stsMsg: string, err: number): iMsg {
     return makeImq(m.fields.MsgId(), name, m.fields.From(), m.fields.Broker(), m.fields.Path(), m.fields.MsgType(), schema.Sts.ERROR, err, stsMsg, m.fields.Cmd(), null, null)
 }
 
-export function success(m: Msg, stsMsg: string): Msg {
+export function success(m: iMsg, stsMsg: string): iMsg {
     return makeImq(m.fields.MsgId(), name, m.fields.From(), m.fields.Broker(), m.fields.Path(), m.fields.MsgType(), schema.Sts.SUCCESS, schema.Err.NONE, stsMsg, m.fields.Cmd(), null, null)
 }
 
-export function req(to: string, dest: string, msg: any, callback: Handler): Msg {
+export function req(to: string, dest: string, msg: any, callback: Handler): iMsg {
     var uid = newUID()
     var m = makeImq(uid, name, to, false, dest, schema.MsgType.PEER, schema.Sts.REQ, schema.Err.NONE, "", schema.Cmd.NONE, msg, callback)
     if (callback) {
@@ -120,11 +122,11 @@ export function req(to: string, dest: string, msg: any, callback: Handler): Msg 
     }
     return m
 }
-export function rep(m: Msg, stsMsg: string, msg: any) {
+export function rep(m: iMsg, stsMsg: string, msg: any) {
     return makeImq(m.fields.MsgId(), name, m.fields.From(), m.fields.Broker(), m.fields.Path(), m.fields.MsgType(), schema.Sts.REP, schema.Err.NONE, stsMsg, m.fields.Cmd(), msg, null)
 
 }
-export function sub(path: string, handler: Handler, callback: Handler): Msg {
+export function sub(path: string, handler: Handler, callback: Handler): iMsg {
     var uid = newUID()
     if (handler) {
         setHandler(path, handler)
@@ -136,7 +138,7 @@ export function sub(path: string, handler: Handler, callback: Handler): Msg {
     return m
 
 }
-export function unSub(path: string, handler: Handler, callback: Handler): Msg {
+export function unSub(path: string, handler: Handler, callback: Handler): Msg <schema.Imq>{
     var uid = newUID()
     delHandler(path)
     var m = makeImq(uid, name, "", false, path, schema.MsgType.CMD, schema.Sts.REQ, schema.Err.NONE, "", schema.Cmd.UNSUB, null, callback)
@@ -146,7 +148,7 @@ export function unSub(path: string, handler: Handler, callback: Handler): Msg {
     return m
 
 }
-function brokerReplay(m: Msg, handler: (client: string, m: Msg) => void, callback: Handler) {
+function brokerReplay(m: iMsg, handler: (client: string, m: iMsg) => void, callback: Handler) {
     if (m.fields.MsgType() == schema.MsgType.MULT) {
         var r = makeImq(m.fields.MsgId(), name, null, false, m.fields.Path(), m.fields.MsgType(), schema.Sts.REQ, schema.Err.NONE, m.fields.StsMsg(), m.fields.Cmd(), m.fields.BodyArray(), callback)
         sendMult(r, handler)
@@ -155,7 +157,7 @@ function brokerReplay(m: Msg, handler: (client: string, m: Msg) => void, callbac
         sendQueue(r, handler)
     }
 }
-export function mult(broker: boolean, path: string, msg: any, handler: (client: string, m: Msg) => void, callback: Handler) {
+export function mult(broker: boolean, path: string, msg: any, handler: (client: string, m: iMsg) => void, callback: Handler) {
     var uid = newUID()
     var m = makeImq(uid, name, "", broker, path, schema.MsgType.MULT, schema.Sts.REQ, schema.Err.NONE, "", schema.Cmd.NONE, msg, callback)
     if (!broker) {
@@ -168,12 +170,12 @@ export function mult(broker: boolean, path: string, msg: any, handler: (client: 
     return m
 
 }
-function sendMult(m: Msg, handler: (client: string, m: Msg) => void) {
+function sendMult(m: iMsg, handler: (client: string, m: iMsg) => void) {
     for (var key in subscribers[m.fields.Path()]) {
         handler(key, m)
     }
 }
-export function queue(broker: boolean, path: string, msg: any, handler: (client: string, m: Msg) => void, callback: Handler) {
+export function queue(broker: boolean, path: string, msg: any, handler: (client: string, m: iMsg) => void, callback: Handler) {
     var uid = newUID()
     var m = makeImq(uid, name, "", broker, path, schema.MsgType.QUEUE, schema.Sts.REQ, schema.Err.NONE, "", schema.Cmd.NONE, msg, callback)
     if (!broker) {
@@ -186,7 +188,7 @@ export function queue(broker: boolean, path: string, msg: any, handler: (client:
     return m
 
 }
-function sendQueue(m: Msg, handler: (client: string, m: Msg) => void) {
+function sendQueue(m: iMsg, handler: (client: string, m: iMsg) => void) {
     var success = false
     var takeNext = false
     var path = m.fields.Path().toString()
@@ -214,8 +216,8 @@ function sendQueue(m: Msg, handler: (client: string, m: Msg) => void) {
     }
 }
 
-function makeImq(id: string, from: string, to: string, broker: boolean, path: string, msgType: schema.MsgType, sts: schema.Sts, err: schema.Err, stsMsg: string, cmd: schema.Cmd, body: Uint8Array | number[], callback: Handler): Msg {
-    var m = new Msg()
+function makeImq(id: string, from: string, to: string, broker: boolean, path: string, msgType: schema.MsgType, sts: schema.Sts, err: schema.Err, stsMsg: string, cmd: schema.Cmd, body: Uint8Array | number[], callback: Handler): iMsg {
+    var m = new Msg<schema.Imq>()
     var builder = new fb.Builder(1)
     var idOffset = builder.createString(id)
     var bodyOffset = schema.Imq.createBodyVector(builder, body)
@@ -248,8 +250,8 @@ function makeImq(id: string, from: string, to: string, broker: boolean, path: st
 
 
 
-export function recieveRawData(data: ArrayBuffer): Msg {
-    var reply: Msg
+export function recieveRawData(data: ArrayBuffer): iMsg {
+    var reply: iMsg
     var m = parseMsg(new Uint8Array(data))
     var buf=new fb.ByteBuffer(m.data)    
     var i=schema.Imq.getRootAsImq(buf)
@@ -287,8 +289,8 @@ export function recieveRawData(data: ArrayBuffer): Msg {
     return reply
 }
 
-function handleCmd(m: Msg): Msg {
-    var r: Msg
+function handleCmd(m: iMsg): iMsg {
+    var r: iMsg
     if (m.fields.Sts() == schema.Sts.REQ) {
         switch (m.fields.Cmd()) {
             case schema.Cmd.SUB:
