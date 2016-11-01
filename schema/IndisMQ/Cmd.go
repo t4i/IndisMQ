@@ -7,6 +7,7 @@ const (
 	CmdSUB = 1
 	CmdUNSUB = 2
 	CmdSYN = 3
+	CmdREADY = 4
 )
 
 var EnumNamesCmd = map[int]string{
@@ -14,5 +15,6 @@ var EnumNamesCmd = map[int]string{
 	CmdSUB:"SUB",
 	CmdUNSUB:"UNSUB",
 	CmdSYN:"SYN",
+	CmdREADY:"READY",
 }
 

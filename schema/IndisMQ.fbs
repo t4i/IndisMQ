@@ -24,9 +24,10 @@ enum Action:byte{NONE,GET,SET,NEW,APPEND, REPLACE,UPDATE,DELETE}
 SUB: request to subscribe to a path, will be processed automatically and return if a callback is present
 UNSUB: request to be unsubscribed to a path, processed automaticlaly and return success if a callback is present
 SYN: request Syncronization, receiver replies with an ACK that contains client info
+READY: Ready to recieve
 PATHS (future): Returns list of paths receiver has handlers and subscribers for
 */
-enum Cmd:byte{NONE,SUB, UNSUB, SYN}
+enum Cmd:byte{NONE,SUB, UNSUB, SYN, READY}
 /*these also function like http status codes 
 ERROR: Contains an Error Code, 
 REQ: Message Contains a Request, 
