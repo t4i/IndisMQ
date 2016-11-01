@@ -6,8 +6,8 @@ import (
 	fb "github.com/google/flatbuffers/go"
 	//"io"
 	//"sync"
+	schema "../schema/IndisMQ"
 	"github.com/dchest/uniuri"
-	schema "t4i/IndisMQ/schema/IndisMQ"
 )
 
 //Handler ...
@@ -28,6 +28,9 @@ var brokerHandler Handler
 var relayHandler Handler
 var messages = make(map[string]*Msg)
 var subscribers = make(map[string]map[string]bool)
+
+//OnReady ...
+var OnReady = func() {}
 
 //Debug ...
 var Debug = false
@@ -52,7 +55,7 @@ func parseMsg(data *[]byte) (m *Msg) {
 	}
 	m = &Msg{}
 	m.Fields = schema.GetRootAsImq(*data, 0)
-	m.RawData = data
+	m.Data = data
 	return
 }
 
@@ -171,6 +174,20 @@ func Err(m *Msg, stsMsg string, err int8) *Msg {
 	return makeImq(m.Fields.MsgId(), name, m.Fields.From(), m.Fields.Broker(), m.Fields.Path(), m.Fields.MsgType(), schema.StsERROR, -1, []byte(stsMsg), err, nil, nil)
 }
 
+//Ready ...
+func Ready(to string, dest string, callback Handler) *Msg {
+	//encode
+	uuid, uuidErr := newUID()
+	if uuidErr != nil {
+		fmt.Printf("error: %v\n", uuidErr)
+	}
+	m := makeImq(uuid, name, []byte(to), 0, []byte(dest), schema.MsgTypeCMD, schema.StsREQ, schema.CmdREADY, nil, -1, nil, callback)
+	if callback != nil {
+		messages[string(uuid)] = m
+	}
+	return m
+}
+
 //Success ...
 func Success(m *Msg, stsMsg string) *Msg {
 	return makeImq(m.Fields.MsgId(), name, m.Fields.From(), m.Fields.Broker(), m.Fields.Path(), m.Fields.MsgType(), schema.StsSUCCESS, m.Fields.Cmd(), []byte(stsMsg), -1, nil, nil)
@@ -183,7 +200,7 @@ func Req(to string, dest string, msg []byte, callback Handler) *Msg {
 	if uuidErr != nil {
 		fmt.Printf("error: %v\n", uuidErr)
 	}
-	m := makeImq(uuid, name, []byte(to), 0, []byte(dest), schema.MsgTypePEER, schema.StsREQ, -1, nil, -1, msg, callback)
+	m := makeImq(uuid, name, []byte(to), 0, []byte(dest), schema.MsgTypeSINGLE, schema.StsREQ, -1, nil, -1, msg, callback)
 	if callback != nil {
 		messages[string(uuid)] = m
 	}
@@ -231,8 +248,8 @@ func UnSub(path string, callback Handler) *Msg {
 //BrokerReplay ...
 func BrokerReplay(m *Msg, handler func(string, *Msg), callback Handler) {
 	var r *Msg
-	if m.Fields.MsgType() == schema.MsgTypeMULT {
-		r = makeImq(m.Fields.MsgId(), name, nil, 0, m.Fields.Path(), schema.MsgTypeMULT, schema.StsREQ, -1, m.Fields.StsMsg(), -1, m.Fields.BodyBytes(), callback)
+	if m.Fields.MsgType() == schema.MsgTypeCAST {
+		r = makeImq(m.Fields.MsgId(), name, nil, 0, m.Fields.Path(), schema.MsgTypeCAST, schema.StsREQ, -1, m.Fields.StsMsg(), -1, m.Fields.BodyBytes(), callback)
 		sendMult(r, handler)
 	} else {
 		r = makeImq(m.Fields.MsgId(), name, nil, 0, m.Fields.Path(), schema.MsgTypeQUEUE, schema.StsREQ, -1, m.Fields.StsMsg(), -1, m.Fields.BodyBytes(), callback)
@@ -252,7 +269,7 @@ func Mult(broker bool, path string, msg []byte, handler func(string, *Msg), call
 	if broker {
 		hasBroker = 1
 	}
-	m := makeImq(uuid, name, nil, hasBroker, []byte(path), schema.MsgTypeMULT, schema.StsREQ, -1, nil, -1, msg, callback)
+	m := makeImq(uuid, name, nil, hasBroker, []byte(path), schema.MsgTypeCAST, schema.StsREQ, -1, nil, -1, msg, callback)
 	if !broker {
 		sendMult(m, handler)
 		return nil
@@ -368,7 +385,7 @@ func makeImq(id []byte, from []byte, to []byte, broker byte, path []byte, msgTyp
 	buf := builder.FinishedBytes()
 
 	//decide if we should add to msg queue
-	m.RawData = &buf
+	m.Data = &buf
 	m.Fields = schema.GetRootAsImq(buf, 0)
 	return
 }
@@ -431,6 +448,8 @@ func handleCmd(imq *Msg) (m *Msg) {
 		case schema.CmdUNSUB:
 			DelSubscriber(string(imq.Fields.From()), string(imq.Fields.Path()))
 			m = Success(imq, "")
+		case schema.CmdREADY:
+			OnReady()
 		default:
 		}
 	} else {
