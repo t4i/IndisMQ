@@ -57,12 +57,12 @@ struct Msg{
     Msg(){}
     Msg(flatbuffers::unique_ptr_t _data,int size){
         fbData=std::move(_data);
-        fields=flatbuffers::GetRoot<T>(_data.get());
+        fields=flatbuffers::GetRoot<T>(fbData.get());
         data=QByteArray::fromRawData(reinterpret_cast<const char *>(fbData.get()),size);
     }
     Msg(QByteArray _data){
         data=_data;
-        fields=flatbuffers::GetRoot<T>(_data.data());
+        fields=flatbuffers::GetRoot<T>(data.data());
     }
 
 #else
@@ -195,11 +195,14 @@ inline Handler getHandler(std::string path){
 }
 
 
-inline std::unique_ptr<iMsg> syn(std::string stsMsg, Handler callback){
+inline std::shared_ptr<iMsg> syn(std::string stsMsg, Handler callback){
     std::string uid=newUid();
-    return makeImq(uid,name(),"",false,"",schema::MsgType::CMD,schema::Sts::REQ,schema::Cmd::SYN,stsMsg,schema::Err::NONE,nullptr,callback);
+    auto m=std::shared_ptr<iMsg>(std::move(makeImq(uid,name(),"",false,"",schema::MsgType::CMD,schema::Sts::REQ,schema::Cmd::SYN,stsMsg,schema::Err::NONE,nullptr,callback)));
+    if(callback){
+        messages[uid]=m;
+    }
+    return m;
 }
-
 inline std::unique_ptr<iMsg> err (std::shared_ptr<iMsg> &m,std::string stsMsg, schema::Err err){
     return makeImq(m->fields->MsgId()->str(),name(),m->fields->From()->str(),m->fields->Broker(),m->fields->Path()->str(),
                    m->fields->MsgType(),schema::Sts::ERROR,m->fields->Cmd(),stsMsg,err,nullptr,nullptr);
@@ -432,6 +435,7 @@ inline std::shared_ptr<Msg> recieveRawData(BUFFER_TYPE data,int dataSize=NULL){
     }
 
 #endif
+    qDebug()<<"Message from "<<m->fields->From()->c_str();
     std::shared_ptr<iMsg> reply;
     //    std::unique_ptr<Msg> n=std::unique_ptr<Msg>(new Msg());
     //    n->fields=schema::GetImq(data);
