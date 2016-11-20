@@ -27,6 +27,7 @@
 namespace schema=IndisMQ;
 class Imq{
 public:
+bool debug=false;
 template<typename T>
 struct Msg;
 typedef Msg<schema::Imq> iMsg;
@@ -187,7 +188,9 @@ inline void delSubscriber(std::string client, std::string path)
 
 inline bool hasSubscriber(std::string path){
     auto it=subscribers.find(path);
+    //qDebug()<<subscribers;
     if(it==subscribers.end()){
+        qDebug()<<"no sub";
         return false;
     }
     return true;
@@ -221,6 +224,9 @@ inline std::unique_ptr<iMsg> err (std::shared_ptr<iMsg> &m,std::string stsMsg, s
 }
 
 inline std::unique_ptr<iMsg> success (std::shared_ptr<iMsg> &m,std::string stsMsg){
+    if(debug){
+        qDebug()<<"Success To "<<m->fields->From()->c_str()<<" From "<<name().c_str();
+    }
     return makeImq(m->fields->MsgId()->str(),name(),m->fields->From()->str(),m->fields->Broker(),m->fields->Path()->str(),
                    m->fields->MsgType(),schema::Sts::SUCCESS,m->fields->Cmd(),stsMsg,schema::Err::NONE,nullptr,nullptr);
 }
@@ -371,7 +377,9 @@ inline std::shared_ptr<iMsg> Queue(bool broker, std::string path, BUFFER_TYPE bo
 inline std::unique_ptr<iMsg> makeImq(std::string id, std::string from, std::string to, bool broker, std::string path,
                                      schema::MsgType msgType, schema::Sts sts, schema::Cmd cmd, std::string stsMsg, schema::Err err, BUFFER_TYPE body, Handler callback)
 {
-
+    if(debug){
+        qDebug()<<"Send id "<<id.c_str()<<" from "<<from.c_str()<<" to "<<to.c_str()<<" sts "<<schema::EnumNameSts(sts)<<" path "<<path.c_str();
+    }
     flatbuffers::FlatBufferBuilder builder;
     auto idOffset = builder.CreateString(id);
     auto fromOffset = builder.CreateString(from);
@@ -432,7 +440,7 @@ inline std::shared_ptr<iMsg> handleCmd(std::shared_ptr<iMsg> &m)
 {
     auto sts = m->fields->Sts();
     std::shared_ptr<iMsg> r;
-    if (sts == schema::Sts::REQ || m->fields->Cmd() == schema::Cmd::READY)
+    if (sts == schema::Sts::REQ)
     {
 
         switch (m->fields->Cmd())
@@ -490,15 +498,10 @@ inline std::shared_ptr<Msg> recieveRawData(BUFFER_TYPE data, int dataSize = NULL
     }
 
 #endif
-    qDebug()<<"Message from "<<m->fields->From()->c_str();
+    if(debug){
+        qDebug()<<"Recieve ID"<<m->fields->MsgId()->c_str()<<" from "<<m->fields->From()->c_str()<< " to "<<m->fields->To()->c_str();
+    }
     std::shared_ptr<iMsg> reply;
-    //    std::unique_ptr<Msg> n=std::unique_ptr<Msg>(new Msg());
-    //    n->fields=schema::GetImq(data);
-    //    //n->rawData=std::move(std::unique_ptr<uint8_t>(data));
-    //    //n->rawDataSize=dataSize;
-    //    auto m=std::shared_ptr<Msg>(std::move(n));
-
-    //qDebug()<<m->fields->MsgId()->c_str();
     if (!m)
     {
         return nullptr;
@@ -523,7 +526,7 @@ inline std::shared_ptr<Msg> recieveRawData(BUFFER_TYPE data, int dataSize = NULL
         }
         else
         {
-            reply = err(m, "Not a Relay", schema::Err::NO_HANDLER);
+           reply = err(m, "Not a Relay", schema::Err::NO_HANDLER);
         }
     }
     else if (m->fields->MsgType() == schema::MsgType::CMD)
