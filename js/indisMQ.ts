@@ -18,7 +18,7 @@ export module imq {
     var subscribers: { [key: string]: { [key: string]: boolean } } = {}
     var brokerHandler: Handler
     var relayHandler: Handler
-    export var onReady: () => any;
+    export var onReady: (client: string) => any;
     export var name = "unnamed"
 
     export function setBrokerHandler(handler: Handler) {
@@ -139,22 +139,22 @@ export module imq {
         return makeImq(m.fields.MsgId(), name, m.fields.From(), m.fields.Broker(), m.fields.Path(), m.fields.MsgType(), schema.Sts.REP, schema.Err.NONE, stsMsg, m.fields.Cmd(), msg, null)
 
     }
-    export function sub(path: string, handler: Handler, callback: Handler): iMsg {
+    export function sub(to:string,path: string, handler: Handler, callback: Handler): iMsg {
         var uid = newUID()
         if (handler) {
             setHandler(path, handler)
         }
-        var m = makeImq(uid, name, "", false, path, schema.MsgType.CMD, schema.Sts.REQ, schema.Err.NONE, "", schema.Cmd.SUB, null, callback)
+        var m = makeImq(uid, name, to, false, path, schema.MsgType.CMD, schema.Sts.REQ, schema.Err.NONE, "", schema.Cmd.SUB, null, callback)
         if (callback) {
             messages[uid] = m
         }
         return m
 
     }
-    export function unSub(path: string, handler: Handler, callback: Handler): Msg<schema.Imq> {
+    export function unSub(to:string,path: string, handler: Handler, callback: Handler): Msg<schema.Imq> {
         var uid = newUID()
         delHandler(path)
-        var m = makeImq(uid, name, "", false, path, schema.MsgType.CMD, schema.Sts.REQ, schema.Err.NONE, "", schema.Cmd.UNSUB, null, callback)
+        var m = makeImq(uid, name, to, false, path, schema.MsgType.CMD, schema.Sts.REQ, schema.Err.NONE, "", schema.Cmd.UNSUB, null, callback)
         if (callback) {
             messages[uid] = m
         }
@@ -318,7 +318,7 @@ export module imq {
                     r = success(m, "")
                     break;
                 case schema.Cmd.READY:
-                    onReady()
+                    onReady(m.fields.From())
                     break;
                 default:
                     r = err(m, "unsupported CMD", schema.Err.INVALID)

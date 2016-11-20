@@ -205,6 +205,7 @@ Currently no OS restrictions (outside of language support) testing done on Linux
 - [x] Queue Messages (round robin)
 - [x] Status Messages incl Error, Success
 - [x] Command Message incl Subscribe, UnSubscribe, Sync
+- [ ] Proxies, idea that broker can sub or other on behalf of one of its connections
 - [ ] Multi-Part messages, or Stream Messages
 - [ ] Build in handlers for common replies (ACK, SUCCESS, etc)
 - [ ] Request Verbs (like http, GET/PUT/etc)
