@@ -211,6 +211,13 @@ Currently no OS restrictions (outside of language support) testing done on Linux
 - [ ] Request Verbs (like http, GET/PUT/etc)
 - [ ] Success statuc messages (like http, 401 etc)
 - [ ] Thread Safety
+- [ ] Connection Priority for Tie-Break
+- [ ] Group
+  - Join Group
+  - Shared External Connections
+  - Membership
+  - Group Partitioning (i.e. Round Robin, Hasn, etc)
+  - Send Message to Group
 - [ ] Timeout Methods for messages-not automatic, must be invoked by user to avoid having a additional event loop 
 - [ ] FB Schemaless (depends on fb release)
 - [ ] Documentation and commented code
